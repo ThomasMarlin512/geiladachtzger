@@ -18,6 +18,7 @@ function displayDate(value) { return new Intl.DateTimeFormat('de-AT',{day:'2-dig
 function dateRange(start,end) { return start ? displayDate(start)+(end!==start?' – '+displayDate(end):'') : 'Termin noch offen'; }
 function safeUrl(value) { try { const u=new globalThis.URL(value);return u.protocol==='https:'?u.href:''; } catch { return ''; } }
 function detailUrl(event) { return 'event.html?id='+encodeURIComponent(event.id); }
+function eventWebsiteUrl(event) { return safeUrl(event.website_url) || detailUrl(event); }
 function past(event) { return event.status==='confirmed' && event.end_date < todayVienna(); }
 function nameFor(key) { return people.find(p=>p.member_key===key)?.full_name || directory.find(p=>p.roster_key===key)?.nickname || 'Gruppenmitglied'; }
 function status(message,id='page-status') { if($(id)) $(id).textContent=message; }
@@ -82,7 +83,7 @@ async function refresh() {
  finally {refreshBusy=false;}
 }
 function eventCard(event,isPast=false) {
- return '<article class="event-card"><div class="category" aria-hidden="true">'+(event.kind==='trip'?'⛰':'✦')+'</div><span class="tag '+(isPast?'past':event.status)+'">'+(isPast?'Rückblick':stateLabels[event.status])+'</span><h3>'+esc(event.title)+'</h3><div class="date-line">'+esc(dateRange(event.start_date,event.end_date))+'</div><p>'+esc(event.location||'Ort noch offen')+'</p><a class="button secondary" href="'+detailUrl(event)+'">'+(isPast?'Rückblick ansehen':'Veranstaltung ansehen')+' →</a></article>';
+ return '<article class="event-card"><div class="category" aria-hidden="true">'+(event.kind==='trip'?'⛰':'✦')+'</div><span class="tag '+(isPast?'past':event.status)+'">'+(isPast?'Rückblick':stateLabels[event.status])+'</span><h3>'+esc(event.title)+'</h3><div class="date-line">'+esc(dateRange(event.start_date,event.end_date))+'</div><p>'+esc(event.location||'Ort noch offen')+'</p><a class="button secondary" href="'+esc(eventWebsiteUrl(event))+'">'+(isPast?'Rückblick ansehen':'Veranstaltung ansehen')+' →</a></article>';
 }
 function renderHome() {
  const coming=events.filter(e=>!past(e)).sort((a,b)=>(a.start_date||'9999').localeCompare(b.start_date||'9999'));
@@ -90,7 +91,7 @@ function renderHome() {
  const next=coming.find(e=>e.status==='confirmed');
  $('event-list').innerHTML=coming.map(e=>eventCard(e)).join('')||'<div class="empty">Noch keine Veranstaltungen geplant.</div>';
  $('past-list').innerHTML=previous.map(e=>eventCard(e,true)).join('')||'<div class="empty">Nach unseren Veranstaltungen findet ihr hier die Rückblicke.</div>';
- $('next-event').innerHTML=next?'<div class="next-event"><div><p class="eyebrow">ALS NÄCHSTES</p><h2>'+esc(next.title)+'</h2><p>'+esc(dateRange(next.start_date,next.end_date))+' · '+esc(next.location)+'</p></div><a class="button" href="'+detailUrl(next)+'">Zum Ausflug →</a></div>':'';
+ $('next-event').innerHTML=next?'<div class="next-event"><div><p class="eyebrow">ALS NÄCHSTES</p><h2>'+esc(next.title)+'</h2><p>'+esc(dateRange(next.start_date,next.end_date))+' · '+esc(next.location)+'</p></div><a class="button" href="'+esc(eventWebsiteUrl(next))+'">Zum Ausflug →</a></div>':'';
  const planning=coming.filter(e=>e.status==='planning');
  $('planning-list').innerHTML=planning.map(event=>'<article class="planning-event"><h3><a href="'+detailUrl(event)+'">'+esc(event.title)+' →</a></h3><div class="date-rows">'+dateCards(event,false)+'</div></article>').join('')||'<div class="empty">Noch keine offenen Terminabstimmungen. Schlagt eure nächste Reise oder ein Treffen vor.</div>';
  wireVotes($('planning-list'));
