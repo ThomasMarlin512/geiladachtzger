@@ -18,11 +18,13 @@ function displayDate(value) { return new Intl.DateTimeFormat('de-AT',{day:'2-dig
 function dateRange(start,end) { return start ? displayDate(start)+(end!==start?' – '+displayDate(end):'') : 'Termin noch offen'; }
 function safeUrl(value) { try { const u=new globalThis.URL(value);return u.protocol==='https:'?u.href:''; } catch { return ''; } }
 function detailUrl(event) { return 'event.html?id='+encodeURIComponent(event.id); }
-function eventWebsiteUrl(event) { return safeUrl(event.website_url) || detailUrl(event); }
+function eventWebsiteUrl(event) { return event.id==='kufstein-2026' ? '/kufstein-2026/' : safeUrl(event.website_url) || detailUrl(event); }
 function past(event) { return event.status==='confirmed' && event.end_date < todayVienna(); }
 function nameFor(key) { return people.find(p=>p.member_key===key)?.full_name || directory.find(p=>p.roster_key===key)?.nickname || 'Gruppenmitglied'; }
 function status(message,id='page-status') { if($(id)) $(id).textContent=message; }
 async function init() {
+ if(document.body.dataset.page==='event' && currentEventId==='kufstein-2026'){location.replace('/kufstein-2026/');return;}
+ if(document.body.dataset.page==='home' && !document.querySelector('.hero-logo')){const fresh=new globalThis.URL(location.href);if(fresh.searchParams.get('v')!=='20261009-2315'){fresh.searchParams.set('v','20261009-2315');location.replace(fresh.href);return;}}
  try {
   if(!window.supabase?.createClient) throw Error('Die Verbindung konnte nicht geladen werden. Bitte Seite neu laden.');
   sb=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true}});
