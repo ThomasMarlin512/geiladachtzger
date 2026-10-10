@@ -66,3 +66,16 @@ code. Resolve names only on the server after validating the code; reject
 ambiguous aliases. Preserve the canonical nickname, stable roster key, votes
 and organizer rights. Login fields allow 100 characters; new nicknames stay
 limited to 50. Never retrieve private profiles in the unauthenticated frontend.
+
+Personal settings are centralized at einstellungen.html in this group hub.
+Every event links there using the event query parameter for its return link.
+Keep the legacy Kufstein settings redirect working, including auth query and
+hash parameters, because existing confirmation emails may target that URL.
+Name/nickname changes synchronize group_people, group_members and own profile;
+never expose another member's email in the group directory. Directory management
+is protected on the server by group_private.admins and uses stable roster keys,
+so account recovery preserves the role. Only an administrator edits others'
+names; ordinary members edit their own profile. Do not grant admin roles through
+the browser or infer them from display names at runtime. Preserve votes and
+attendance when renaming, and reject stale admin edits. Admin management currently
+covers names and nicknames; it does not delete accounts or change trip participation.

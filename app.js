@@ -1,3 +1,4 @@
+import {createMemberDirectory} from './member-directory.js?v=members-20261010-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
 import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields} from './event-layout.js?v=structure-20261010-1';
 import {fail} from './webmcp-core.js';
@@ -11,6 +12,7 @@ let sb, user, member, memberKey, busy = false, refreshBusy = false, timer;
 let events = [], options = [], votes = [], attendance = [], people = [], directory = [];
 let programItems=[],programVotes=[],programLinks=[],linkItemId=null,mediaItemId=null,previewBusy=false;
 let createdDraftId = null, writeBusy = false;
+const membersUi=createMemberDirectory({client:()=>sb,onIdentity:nickname=>{if(member){member.display_name=nickname;$('member-name').textContent=nickname;}},onSaved:()=>refresh()});
 const currentEventId = new URLSearchParams(location.search).get('id');
 const labels = {yes:'✓ Dabei', maybe:'? Unsicher', no:'✕ Nicht dabei'};
 const dateLabels = {yes:'✓ Passt', maybe:'? Vielleicht', no:'✕ Geht nicht'};
@@ -37,6 +39,7 @@ async function init() {
   $('login-form').addEventListener('submit',e=>{e.preventDefault();authenticate(false);});
   $('join-form').addEventListener('submit',e=>{e.preventDefault();authenticate(true);});
   wireForms();
+  if($('event-settings-link')&&currentEventId)$('event-settings-link').href='einstellungen.html?'+new URLSearchParams({event:currentEventId});
   const {data,error}=await sb.auth.getSession();if(error)throw error;
   if(data.session) { user=data.session.user;await enter(); }
  } catch(e) { status(e.message,'auth-status'); }
@@ -66,8 +69,14 @@ async function enter() {
  const key=await sb.from('trip_attendance').select('roster_key').eq('user_id',user.id).single();
  if(key.error)throw key.error;
  member=m.data;memberKey=key.data.roster_key;
+ const returnParams=new URLSearchParams(location.search);
+ if(document.body.dataset.page==='home'&&returnParams.get('return')==='profil'){
+  const event=returnParams.get('event');
+  location.replace('einstellungen.html'+(event?'?'+new URLSearchParams({event}):''));return;
+ }
  $('auth').hidden=true;$('app').hidden=false;$('member-name').textContent=member.display_name;
  await refresh();
+ if(location.hash==='#mitglieder')$('mitglieder')?.scrollIntoView({block:'start'});
  if(!timer)timer=setInterval(()=>{if(!document.hidden&&!writeBusy&&!document.activeElement?.closest('form')&&document.activeElement?.tagName!=='SELECT')refresh();},15000);
 }
 async function refresh() {
@@ -89,7 +98,7 @@ async function refresh() {
   [events,options,votes,attendance,people,directory,programItems,programVotes,programLinks]=results.map(r=>r.data||[]);
   programItems=sortProgram(programItems);
   status('');
-  if(document.body.dataset.page==='home')renderHome();else renderEvent();
+  if(document.body.dataset.page==='home'){renderHome();await membersUi?.load();}else renderEvent();
  } catch(e) {status('Aktualisierung fehlgeschlagen: '+(e.message||String(e)));}
  finally {refreshBusy=false;}
 }

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071b2c"><title>Persönliche Einstellungen · Geiladachtzger</title><link rel="stylesheet" href="styles.css?v=members-20261010-1"><script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script><script defer src="profile.js?v=members-20261010-1"></script></head>
+<body data-page="profile"><nav class="nav"><div class="nav-inner"><a class="home-nav-link" href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 10 9-7 9 7v10H15v-7H9v7H3Z"/></svg>Hauptseite</a><div class="nav-links"><a href="index.html#mitglieder">Mitglieder</a><a id="profile-event-back" href="index.html" hidden>Zur Veranstaltung</a></div></div></nav>
+<main class="profile-main"><p class="eyebrow">MEIN KONTO IN DER GRUPPE</p><h1>Persönliche Einstellungen</h1><p>Name und Nickname sind für eure Gruppe sichtbar. Diese Einstellungen gelten für alle Veranstaltungen. Deine E-Mail bleibt privat.</p>
+<p id="page-status" class="status" role="status" aria-live="polite">Dein Profil wird geladen …</p><button id="retry-load" class="secondary" type="button" hidden>Erneut laden</button><p id="login-help" hidden><a id="login-link" href="index.html?return=profil">Anmelden und Einstellungen öffnen →</a></p>
+<div id="content" hidden>
+<section class="panel profile-panel"><h2>Persönliches Profil</h2>
+<form id="profile-form">
+<label for="full-name">Vollständiger Name</label><input id="full-name" name="full-name" autocomplete="name" minlength="2" maxlength="100" placeholder="Vorname Nachname" required>
+<label for="nickname">Nickname für die Anzeige</label><input id="nickname" name="nickname" autocomplete="username" minlength="2" maxlength="50" placeholder="Dein Nickname" aria-describedby="nickname-help" required>
+<small id="nickname-help">Muss innerhalb der Gruppe eindeutig sein. Du kannst dich mit dem Nickname oder deinem vollständigen Namen und dem Gruppencode anmelden.</small>
+<label for="email">E-Mail-Adresse <span class="subtle">(optional)</span></label><input id="email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="name@beispiel.at" aria-describedby="email-help">
+<small id="email-help">Nur du kannst deine E-Mail-Adresse sehen. Wenn du sie auch zur Anmeldung nutzen möchtest, bestätige sie anschließend unten.</small>
+<button id="save-profile" type="submit">Persönliche Daten speichern</button>
+<p id="profile-status" class="status" role="status" aria-live="polite"></p>
+</form></section>
+<details class="panel profile-panel"><summary>E-Mail auch für die Anmeldung verwenden</summary>
+<p id="email-login-state" class="status"></p>
+<button id="link-email" class="secondary" type="button" disabled>Gespeicherte E-Mail bestätigen</button>
+<p id="email-status" class="status" role="status" aria-live="polite"></p>
+</details></div></main></body></html>
