@@ -36,3 +36,10 @@ input[type=time]{color-scheme:dark}
 #program-media-dialog{width:min(94vw,720px)}#program-media-form button[type=submit]{width:100%;margin-top:14px}
 #load-program-photos{margin-top:12px}.media-candidates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.media-candidate{display:flex;flex-direction:column;padding:5px;background:#13384a;color:#eefbff;border-color:#40687c;min-width:0}.media-candidate img{width:100%;height:100px;object-fit:cover;border-radius:7px}.media-candidate span{font-size:11px;padding:5px}.media-candidate[aria-pressed=true]{outline:3px solid #a3edcb}.media-selected-image{width:100%;max-height:260px;object-fit:contain;margin-top:15px;border-radius:10px;background:#061725}
 @media(max-width:500px){.media-candidates{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* The itinerary is generated from the same records as the activity cards. */
+.itinerary-summary{font-size:13px;color:#bcd8e2;padding:10px 12px;border-radius:8px;background:#082537}
+.itinerary-list{list-style:none;margin:0;padding:0}.itinerary-entry{display:grid;grid-template-columns:115px minmax(0,1fr);gap:16px;padding:18px 0;border-bottom:1px solid #285064}.itinerary-entry:last-child{border-bottom:0}.itinerary-time{font-size:13px;color:#b1f0dd;font-weight:750;font-variant-numeric:tabular-nums;padding-top:2px;line-height:1.6}.itinerary-content h4{margin:0;font-size:17px;line-height:1.4}.itinerary-content h4 a{text-decoration:none;color:#effbff}.itinerary-content .itinerary-hint{font-size:12px;color:#abc4d0;margin:7px 0}.itinerary-content .itinerary-description{font-size:13px;white-space:pre-wrap;margin:9px 0;line-height:1.65}.itinerary-content .itinerary-conflict{font-size:12px;color:#f9d794;margin:9px 0}.itinerary-edit{font-size:12px;padding-left:0;min-height:40px;text-align:left;justify-content:start}
+.trip-info-grid{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+@media(max-width:1050px){.trip-info-grid{grid-template-columns:1fr}}
+@media(max-width:500px){.itinerary-entry{grid-template-columns:1fr;gap:5px}.program-timeline{padding-left:12px}.itinerary-time{font-size:14px}}
