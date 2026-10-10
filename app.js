@@ -1,12 +1,14 @@
 import {installHubTools} from './webmcp-tools.js';
 import {fail} from './webmcp-core.js';
 import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=20261010-2';
+import {programCards,programTimeline,httpsUrl,activityPhotos} from './trip-program.js?v=20261010-1';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const URL = 'https://rzzipqdozabuxrmoxhlw.supabase.co';
 const KEY = 'sb_publishable_4MsQNsSWj2VXmONSNim-zg__T2QeLV0';
 let sb, user, member, memberKey, busy = false, refreshBusy = false, timer;
 let events = [], options = [], votes = [], attendance = [], people = [], directory = [];
+let programItems=[],programVotes=[],programLinks=[],linkItemId=null;
 let createdDraftId = null, writeBusy = false;
 const currentEventId = new URLSearchParams(location.search).get('id');
 const labels = {yes:'✓ Dabei', maybe:'? Unsicher', no:'✕ Nicht dabei'};
@@ -21,7 +23,7 @@ function displayDate(value) { return new Intl.DateTimeFormat('de-AT',{day:'2-dig
 function dateRange(start,end) { return start ? displayDate(start)+(end!==start?' – '+displayDate(end):'') : 'Termin noch offen'; }
 function safeUrl(value) { try { const u=new globalThis.URL(value);return u.protocol==='https:'?u.href:''; } catch { return ''; } }
 function detailUrl(event) { return 'event.html?id='+encodeURIComponent(event.id); }
-function eventWebsiteUrl(event) { return event.id==='kufstein-2026' ? '/kufstein-2026/' : safeUrl(event.website_url) || detailUrl(event); }
+function eventWebsiteUrl(event) { return event.id==='kufstein-2026' ? '/kufstein-2026/' : detailUrl(event); }
 function past(event) { return event.status==='confirmed' && event.end_date < todayVienna(); }
 function nameFor(key) { return people.find(p=>p.member_key===key)?.full_name || directory.find(p=>p.roster_key===key)?.nickname || 'Gruppenmitglied'; }
 function status(message,id='page-status') { if($(id)) $(id).textContent=message; }
@@ -78,10 +80,13 @@ async function refresh() {
    sb.from('group_date_votes').select('*'),
    sb.from('group_event_attendance').select('*'),
    sb.from('group_people').select('id,member_key,full_name').order('full_name'),
-   sb.from('trip_attendance').select('user_id,roster_key,nickname')
+   sb.from('trip_attendance').select('user_id,roster_key,nickname'),
+   currentEventId?sb.from('group_program_items').select('*').eq('event_id',currentEventId).order('day_number',{nullsFirst:false}).order('created_at'):Promise.resolve({data:[]}),
+   currentEventId?sb.from('group_program_votes').select('*'):Promise.resolve({data:[]}),
+   currentEventId?sb.from('group_program_links').select('*').order('created_at'):Promise.resolve({data:[]})
   ]);
   const bad=results.find(r=>r.error);if(bad)throw bad.error;
-  [events,options,votes,attendance,people,directory]=results.map(r=>r.data||[]);
+  [events,options,votes,attendance,people,directory,programItems,programVotes,programLinks]=results.map(r=>r.data||[]);
   status('');
   if(document.body.dataset.page==='home')renderHome();else renderEvent();
  } catch(e) {status('Aktualisierung fehlgeschlagen: '+(e.message||String(e)));}
@@ -131,9 +136,15 @@ function renderEvent() {
  document.title=event.title+' · Geiladachtzger';
  const organizer=event.created_by_key===memberKey;
  const url=safeUrl(event.website_url);
- $('event-detail').innerHTML='<section class="event-detail"><span class="tag '+event.status+'">'+(past(event)?'Rückblick':stateLabels[event.status])+'</span><h1 class="event-title">'+esc(event.title)+'</h1><div class="event-meta"><span>▦ '+esc(dateRange(event.start_date,event.end_date))+'</span><span>⌖ '+esc(event.location||'Ort noch offen')+'</span></div>'+(event.description?'<p class="event-description">'+esc(event.description)+'</p>':'')+(url?'<a class="button" href="'+esc(url)+'">Zur eigenen Veranstaltungswebseite →</a>':'')+'</section>';
+ const heroPhoto=programItems.map(item=>activityPhotos[httpsUrl(item.website_url)]).find(Boolean);
+ $('event-detail').innerHTML='<header class="trip-hero">'+(heroPhoto?'<img class="trip-hero-photo" src="'+esc(heroPhoto.image)+'" alt="" aria-hidden="true">':'')+'<div class="trip-hero-content"><img class="trip-wordmark" src="assets/geiladachtzger-logo.webp" alt="Geiladachtzger"><p class="eyebrow">GUTE FREUNDE · SCHÖNE ERLEBNISSE</p><span class="tag '+event.status+'">'+(past(event)?'Rückblick':stateLabels[event.status])+'</span><h1 class="event-title">'+esc(event.title)+'</h1><p>'+esc(dateRange(event.start_date,event.end_date))+' · '+esc(event.location||'Ort noch offen')+'</p></div></header><div class="trip-feature-strip"><span>✦ Gemeinsam unterwegs</span><span>▦ '+programItems.length+' Programmideen</span><span>♧ '+people.length+' Gruppenmitglieder</span></div>';
+ $('trip-information').innerHTML='<h3>'+esc(event.location||'Ort noch offen')+'</h3>'+(event.description?'<p class="event-description">'+esc(event.description)+'</p>':'<p>Weitere Informationen zu Unterkunft und Anreise können als Programmpunkte vorgeschlagen werden.</p>')+(url?'<p><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Weitere Reiseinfos ↗</a></p>':'');
  $('event-dates-section').hidden=event.status!=='planning';
- $('event-dates').innerHTML=votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,organizer,id));wireVotes($('event-dates'));
+ $('date-nav').hidden=event.status!=='planning';
+ if(event.status==='planning'){
+  $('event-dates').innerHTML=votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,organizer,id));wireVotes($('event-dates'));
+ }else $('event-dates').replaceChildren();
+ renderProgram(event);
  renderPeople(event);
  $('organizer-section').hidden=!organizer;
  $('extra-start').min=todayVienna();
@@ -190,6 +201,11 @@ function wireForms() {
  $('new-event-form')?.addEventListener('submit',createEvent);
  $('edit-event-form')?.addEventListener('submit',editEvent);
  $('add-option-form')?.addEventListener('submit',addOption);
+ $('propose-program')?.addEventListener('click',()=>{if(writeBusy)return;$('program-form').reset();status('','program-form-status');$('program-dialog').showModal();$('program-title').focus();});
+ $('close-program')?.addEventListener('click',()=>$('program-dialog').close());
+ $('close-program-link')?.addEventListener('click',()=>$('program-link-dialog').close());
+ $('program-form')?.addEventListener('submit',addProgram);
+ $('program-link-form')?.addEventListener('submit',addProgramLink);
  $('extra-start')?.addEventListener('change',()=>{const start=$('extra-start').value;$('extra-end').min=start||todayVienna();if(start&&(!$('extra-end').value||$('extra-end').value<start))$('extra-end').value=start;});
 }
 async function createEvent(e) {
@@ -245,6 +261,60 @@ async function addOption(e) {
   selectCalendarDate(currentEventId,r.data.id,start);
   e.target.reset();await refresh();status('Termin hinzugefügt. Alle können jetzt darüber abstimmen.','extra-status');
  }catch(e){status('Nicht gespeichert: '+e.message,'extra-status');}
+ finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
+}
+
+function renderProgram(event) {
+ const container=$('program-list');
+ const opened=new Set([...container.querySelectorAll('details[open]')].map(el=>el.dataset.programDetail));
+ container.innerHTML=programCards(programItems,programVotes,programLinks,event,memberKey,nameFor,people.length);
+ container.querySelectorAll('[data-program-detail]').forEach(el=>{el.open=opened.has(el.dataset.programDetail);});
+ $('program-timeline').innerHTML=programTimeline(programItems,event);
+ container.querySelectorAll('[data-program-vote]').forEach(button=>button.addEventListener('click',()=>voteProgram(button)));
+ container.querySelectorAll('[data-program-link]').forEach(button=>button.addEventListener('click',()=>{
+  if(writeBusy)return;
+  linkItemId=button.dataset.programLink;
+  $('program-link-form').reset();$('program-link-item').textContent=programItems.find(item=>item.id===linkItemId)?.title||'';
+  status('','program-link-status');$('program-link-dialog').showModal();$('program-link-label').focus();
+ }));
+}
+async function addProgram(e) {
+ e.preventDefault();if(writeBusy)return;writeBusy=true;
+ const button=e.target.querySelector('button');button.disabled=true;
+ try {
+  const raw=$('program-url').value.trim(),url=raw?httpsUrl(raw):'';
+  if(raw&&!url)throw Error('Bitte eine gültige https://-Adresse ohne Zugangsdaten eingeben.');
+  const day=$('program-day').value?Number($('program-day').value):null;
+  const result=await sb.from('group_program_items').insert({event_id:currentEventId,title:$('program-title').value.trim(),description:$('program-description').value.trim(),category:$('program-category').value,day_number:day,time_label:$('program-time').value.trim(),cost_label:$('program-cost').value.trim(),website_url:url,created_by_key:memberKey}).select().single();
+  if(result.error)throw result.error;
+  $('program-dialog').close();await refresh();status('Programmvorschlag gespeichert. Alle können abstimmen.','program-status');
+  document.getElementById('program-'+result.data.id)?.scrollIntoView({behavior:'smooth',block:'center'});
+ }catch(error){status('Nicht gespeichert: '+error.message,'program-form-status');}
+ finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
+}
+async function voteProgram(button) {
+ if(writeBusy)return;writeBusy=true;button.disabled=true;
+ const item_id=button.dataset.programVote,choice=button.dataset.programChoice;
+ try {
+  const own=programVotes.some(v=>v.item_id===item_id&&v.member_key===memberKey);
+  let result=own?await sb.from('group_program_votes').update({choice}).eq('item_id',item_id).eq('member_key',memberKey).select().single():await sb.from('group_program_votes').insert({item_id,member_key:memberKey,choice}).select().single();
+  if(result.error?.code==='23505')result=await sb.from('group_program_votes').update({choice}).eq('item_id',item_id).eq('member_key',memberKey).select().single();
+  if(result.error)throw result.error;
+  await refresh();status('Stimme gespeichert.','program-status');
+ }catch(error){status('Stimme nicht gespeichert: '+error.message,'program-status');}
+ finally{writeBusy=false;if(button.isConnected)button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
+}
+async function addProgramLink(e) {
+ e.preventDefault();if(writeBusy)return;writeBusy=true;
+ const button=e.target.querySelector('button');button.disabled=true;
+ try {
+  const url=httpsUrl($('program-link-url').value.trim());
+  if(!url)throw Error('Bitte eine gültige https://-Adresse ohne Zugangsdaten eingeben.');
+  if(programLinks.some(l=>l.item_id===linkItemId&&l.url===url)||programItems.some(i=>i.id===linkItemId&&httpsUrl(i.website_url)===url))throw Error('Dieser Link ist bereits vorhanden.');
+  const result=await sb.from('group_program_links').insert({item_id:linkItemId,label:$('program-link-label').value.trim(),url,created_by_key:memberKey}).select().single();
+  if(result.error){if(result.error.code==='23505')throw Error('Dieser Link ist bereits vorhanden.');throw result.error;}
+  $('program-link-dialog').close();await refresh();status('Link ergänzt.','program-status');
+ }catch(error){status('Nicht gespeichert: '+error.message,'program-link-status');}
  finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
 }
 installHubTools({
