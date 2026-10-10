@@ -100,3 +100,9 @@ hub album area. Destination covers are labelled as title images, not as images
 retrieved from the private albums. All shared trips use the same photo view;
 Kufstein keeps /kufstein-2026/fotos.html and its existing iCloud link. Do not imply
 uploads or album synchronization. The album provider controls those permissions.
+
+Navigation frames indicate only the current section or page. Never permanently
+highlight Fotos or another destination. Use aria-current=location for the hub
+and scrolling trip sections, updating on scroll; separate event views use
+aria-current=page. All primary navigation links share the same inactive and
+active appearance. Keep visible keyboard focus indicators independent of this.
