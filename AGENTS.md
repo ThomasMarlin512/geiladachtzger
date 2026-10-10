@@ -60,3 +60,9 @@ creating events. Keep Termin steht for confirmed dates. Internal status values
 remain planning/confirmed/saved. House + Hauptseite always links to the group
 hub; calendar + Übersicht links to the current event, with text labels alongside
 icons so the two destinations remain clear on phones.
+
+Returning members can log in with their nickname or full name plus the group
+code. Resolve names only on the server after validating the code; reject
+ambiguous aliases. Preserve the canonical nickname, stable roster key, votes
+and organizer rights. Login fields allow 100 characters; new nicknames stay
+limited to 50. Never retrieve private profiles in the unauthenticated frontend.

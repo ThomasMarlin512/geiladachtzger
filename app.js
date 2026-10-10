@@ -62,7 +62,7 @@ async function authenticate(join) {
 async function enter() {
  const m=await sb.from('group_members').select('display_name').eq('user_id',user.id).maybeSingle();
  if(m.error)throw m.error;
- if(!m.data)throw Error('Bitte mit Nickname und Gruppencode anmelden.');
+ if(!m.data)throw Error('Bitte mit Nickname oder vollständigem Namen und Gruppencode anmelden.');
  const key=await sb.from('trip_attendance').select('roster_key').eq('user_id',user.id).single();
  if(key.error)throw key.error;
  member=m.data;memberKey=key.data.roster_key;
