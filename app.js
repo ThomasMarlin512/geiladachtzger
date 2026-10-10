@@ -14,7 +14,7 @@ let createdDraftId = null, writeBusy = false;
 const currentEventId = new URLSearchParams(location.search).get('id');
 const labels = {yes:'✓ Dabei', maybe:'? Unsicher', no:'✕ Nicht dabei'};
 const dateLabels = {yes:'✓ Passt', maybe:'? Vielleicht', no:'✕ Geht nicht'};
-const stateLabels = {planning:'In Planung',confirmed:'Termin steht',saved:'Für später'};
+const stateLabels = {planning:'Vorschlag',confirmed:'Termin steht',saved:'Für später'};
 function todayVienna() {
  const parts = new Intl.DateTimeFormat('en',{timeZone:'Europe/Vienna',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
  const get = type => parts.find(p=>p.type===type).value;
@@ -105,7 +105,7 @@ function renderHome() {
  const previous=events.filter(past).sort((a,b)=>b.start_date.localeCompare(a.start_date));
  const saved=events.filter(e=>e.status==='saved');
  const next=coming.find(e=>e.status==='confirmed');
- $('event-list').innerHTML=coming.filter(e=>e.id!==next?.id).map(e=>eventCard(e)).join('')||'<div class="empty">'+(next?'Noch keine weiteren Veranstaltungen geplant.':'Noch keine Veranstaltungen geplant.')+'</div>';
+ $('event-list').innerHTML=coming.filter(e=>e.id!==next?.id).map(e=>eventCard(e)).join('')||'<div class="empty">'+(next?'Noch keine weiteren Vorschläge.':'Noch keine Veranstaltungen vorgeschlagen.')+'</div>';
  $('hub-hero').classList.toggle('has-next',Boolean(next));
  $('saved-list').innerHTML=saved.map(e=>eventCard(e)).join('')||'<div class="empty">Noch keine Ideen für später gespeichert.</div>';
  $('past-list').innerHTML=previous.map(e=>eventCard(e,true)).join('')||'<div class="empty">Nach unseren Veranstaltungen findet ihr hier die Rückblicke.</div>';
@@ -140,7 +140,7 @@ async function voteDate(optionId,choice,button) {
 }
 function renderEvent() {
  const event=events.find(e=>e.id===currentEventId);
- if(!event){$('event-detail').innerHTML='<div class="empty">Diese Veranstaltung wurde nicht gefunden oder bereits gelöscht. <a href="index.html">Zur Gruppenübersicht</a></div>';$('event-content').hidden=true;return;}
+ if(!event){$('event-detail').innerHTML='<div class="empty">Diese Veranstaltung wurde nicht gefunden oder bereits gelöscht. <a href="index.html">Zur Hauptseite</a></div>';$('event-content').hidden=true;return;}
  $('event-content').hidden=false;
  document.title=event.title+' · Geiladachtzger';
  const organizer=event.created_by_key===memberKey;
@@ -161,7 +161,7 @@ function renderEvent() {
  }else $('event-dates').replaceChildren();
  renderProgram(event);renderPeople(event);
  $('organizer-section').hidden=!organizer;$('edit-overview').hidden=!organizer;
- $('save-event-later').textContent=event.status==='saved'?'Planung wieder aufnehmen':'Für später speichern';
+ $('save-event-later').textContent=event.status==='saved'?'Wieder aktivieren':'Für später speichern';
  $('extra-start').min=todayVienna();$('extra-end').min=$('extra-start').value||todayVienna();
  if(location.hash==='#date-suggestion')$('date-suggestion').open=true;
  document.querySelectorAll('[data-edit-event]').forEach(button=>{button.onclick=()=>openEventSettings(button.dataset.editEvent);});

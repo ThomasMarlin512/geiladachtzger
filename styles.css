@@ -53,6 +53,15 @@ body[data-page=event] .event-main{max-width:1280px}.trip-hero{min-height:310px;t
 @media(max-width:950px){.travel-grid{grid-template-columns:1fr 1fr}.travel-card:last-child{grid-column:1/-1}#event-program .program-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.hub-hero{padding:42px 20px}.trip-hero{padding:30px 22px;min-height:270px}.event-tabs a{padding:12px 15px;font-size:13px}.travel-grid,.overview-shortcuts,.travel-timeline{grid-template-columns:1fr}.travel-card:last-child{grid-column:auto}.manage-actions{flex-direction:column}.manage-actions button{width:100%}.album-panel{padding:22px}#event-program .program-grid{grid-template-columns:1fr}.event-card-content{padding:24px}.event-photo-card{min-height:320px}#event-settings-dialog fieldset{padding:14px}.hero-credit{max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 
+/* Shared destinations: house = group hub, calendar = this event. */
+nav .home-nav-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:9px 12px;border:1px solid #527789;border-radius:10px;color:#e3f9fc;text-decoration:none;white-space:nowrap;font-family:inherit;font-size:13px;font-weight:750;flex:0 0 auto}
+nav .home-nav-link svg,nav .event-home-link svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+nav .event-home-link{display:inline-flex;align-items:center;gap:7px;min-height:44px;text-decoration:none}
+nav .home-nav-link:focus-visible,nav .event-home-link:focus-visible{outline:2px solid #c6fff1;outline-offset:3px}
+nav .home-nav-link:hover{background:#164052}
+@media(max-width:700px){nav .home-nav-link{padding:8px 10px;font-size:12px}.nav-inner{gap:10px}.nav-links{overflow:auto;min-width:0}.nav-links a{min-height:40px;display:inline-flex;align-items:center;white-space:nowrap}}
+.event-main-nav .nav-inner{flex-wrap:nowrap}.event-main-nav .nav-links{order:0;flex-basis:auto;justify-content:flex-end;padding:0}.event-main-nav .member-name{margin-left:4px}
+
 /* The next trip is the hero itself, not a duplicate of a card below. */
 .hub-hero.has-next .hub-intro{display:none}.hub-hero.has-next .next-event{padding:0;border:0;background:transparent;max-width:none}.hub-hero.has-next .next-event h2{font-size:clamp(30px,4.5vw,46px);margin:12px 0 14px}.hub-hero.has-next .next-event p{color:#d5e7ef}.hub-hero.has-next .next-event .eyebrow{color:#b7dae4}.hub-hero.has-next{padding-top:50px;padding-bottom:50px}.hub-hero:after{background:linear-gradient(90deg,#041927e8,#04192799)}
 @media(max-width:700px){.nav-inner{padding:8px 16px;gap:4px 12px}.brand-logo{width:110px}.brand span{display:none}.nav-links{padding-top:0;gap:18px}.nav-links a{display:inline-flex;align-items:center;min-height:40px}.member-name{font-size:12px}.hub-hero.has-next{padding:30px 18px 38px}.hub-hero.has-next .next-event{gap:20px}.hub-credit{right:18px;font-size:9px}.event-photo-card{min-height:260px}.event-card-content{padding:22px}.event-card-content h3{margin-top:20px}.cover-credit{margin-top:12px}}

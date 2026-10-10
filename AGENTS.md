@@ -13,8 +13,9 @@ parameter creates linkable event subpages without copying destination HTML.
 Overview contains separate arrival, departure, hotel and participation fields.
 Program contains the automatic itinerary and activity votes. Dates and calendars
 appear only on the Termine view while planning. Photos opens an external album
-link; no upload or synchronization is implied. Keep the small navigation logo,
-but no large logo or category icon above the event's planning status.
+link; no upload or synchronization is implied. On event pages, the first navigation control is a labelled house button to the
+group hub; the event overview uses a calendar icon and the label Übersicht.
+Keep no large logo or category icon above the event's status.
 
 Destination covers and structured travel/hotel/album fields live in group_events.
 An explicit cover wins; otherwise use the first existing program photo. Always
@@ -53,3 +54,9 @@ explicitly open; do not invent a confirmed schedule or treat votes as bookings.
 On the hub, show the next confirmed event once in the hero and exclude it from
 the cards below. The hero may only use that event's cover or program photo,
 never a fallback image from another destination. Keep the mobile header compact.
+
+Use Vorschlag for the visible planning status and Veranstaltung vorschlagen for
+creating events. Keep Termin steht for confirmed dates. Internal status values
+remain planning/confirmed/saved. House + Hauptseite always links to the group
+hub; calendar + Übersicht links to the current event, with text labels alongside
+icons so the two destinations remain clear on phones.
