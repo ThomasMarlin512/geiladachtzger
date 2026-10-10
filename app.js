@@ -1,7 +1,7 @@
 import {installHubTools} from './webmcp-tools.js';
 import {fail} from './webmcp-core.js';
 import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=20261010-2';
-import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram} from './trip-program.js?v=20261010-2';
+import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram} from './trip-program.js?v=20261010-3';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const URL = 'https://rzzipqdozabuxrmoxhlw.supabase.co';
@@ -278,7 +278,7 @@ function renderProgram(event) {
  container.querySelectorAll('[data-program-detail]').forEach(el=>{el.open=opened.has(el.dataset.programDetail);});
  $('program-timeline').innerHTML=programTimeline(programItems,event);
  container.querySelectorAll('img.program-photo').forEach(img=>img.addEventListener('error',()=>{img.hidden=true;}));
- container.querySelectorAll('[data-program-media]').forEach(button=>button.addEventListener('click',()=>openProgramMedia(button.dataset.programMedia)));
+ document.querySelectorAll('#program-list [data-program-media],#program-timeline [data-program-media]').forEach(button=>button.addEventListener('click',()=>openProgramMedia(button.dataset.programMedia)));
  container.querySelectorAll('[data-program-vote]').forEach(button=>button.addEventListener('click',()=>voteProgram(button)));
  container.querySelectorAll('[data-program-link]').forEach(button=>button.addEventListener('click',()=>{
   if(writeBusy)return;
@@ -342,6 +342,7 @@ function openProgramMedia(id) {
  if(writeBusy||previewBusy)return;
  const item=programItems.find(i=>i.id===id);if(!item)return;mediaItemId=id;
  $('program-media-form').reset();$('program-media-item').textContent=item.title;
+ $('media-description').value=item.description||'';
  $('media-day').value=item.day_number||'';$('media-hint').value=item.time_label;
  $('media-start').value=item.start_time?.slice(0,5)||'';$('media-end').value=item.end_time?.slice(0,5)||'';$('media-next-day').checked=item.ends_next_day;
  const photo=programPhoto(item);
@@ -385,9 +386,9 @@ async function saveProgramMedia(e) {
   const image_url=rawImage?httpsUrl(rawImage):'',image_source_url=rawSource?httpsUrl(rawSource):'';
   if(rawImage&&!image_url)throw Error('Bitte eine gültige HTTPS-Bildadresse eingeben.');
   if(image_url&&!image_source_url)throw Error('Bitte den Quellenlink zum Foto angeben.');
-  const result=await sb.from('group_program_items').update({...times,day_number:$('media-day').value?Number($('media-day').value):null,time_label:$('media-hint').value.trim(),image_url,image_source_url:image_url?image_source_url:'',image_credit:image_url?$('media-credit').value.trim():''}).eq('id',mediaItemId).select().single();
+  const result=await sb.from('group_program_items').update({...times,description:$('media-description').value.trim(),day_number:$('media-day').value?Number($('media-day').value):null,time_label:$('media-hint').value.trim(),image_url,image_source_url:image_url?image_source_url:'',image_credit:image_url?$('media-credit').value.trim():''}).eq('id',mediaItemId).select().single();
   if(result.error)throw result.error;
-  $('program-media-dialog').close();await refresh();status('Uhrzeit und Foto gespeichert.','program-status');
+  $('program-media-dialog').close();await refresh();status('Programmpunkt gespeichert. Der Ablauf wurde automatisch aktualisiert.','program-status');
  }catch(error){status('Nicht gespeichert: '+error.message,'program-media-status');}
  finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
 }
