@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {publicUrl,publicIPv4,extractImages} from '../supabase/functions/program-link-preview/preview-core.mjs';
+for(const url of ['http://example.com','https://127.0.0.1','https://169.254.169.254/','https://[::1]/','https://user:pass@example.com','https://example.com:8080'])assert.throws(()=>publicUrl(url));
+for(const ip of ['127.0.0.1','10.0.0.1','169.254.169.254','172.16.0.1','192.168.0.1','100.64.0.1','198.18.0.1'])assert.equal(publicIPv4(ip),false);
+assert.equal(publicIPv4('8.8.8.8'),true);
+const html='<meta content="/hotel.jpg?a=1&amp;b=2" property="og:image"><meta name="twitter:image" content="javascript:alert(1)"><img src="/room.jpg"><img src="http://insecure/photo.jpg"><img src="/logo.png"><img src="/pixel.jpg" width="1" height="1">';
+const parsed=extractImages(html,'https://hotel.example.org/page');
+assert.equal(parsed.images.length,2);assert.equal(parsed.images[0].url,'https://hotel.example.org/hotel.jpg?a=1&b=2');
+assert.equal(extractImages('<p>No photo</p>','https://example.org').images.length,0);
+assert.throws(()=>publicUrl('http://127.0.0.1/','https://example.org'));
+console.log('PASS: URL and IP guards, redirects, image candidates, HTML entities and empty preview');
