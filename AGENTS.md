@@ -7,10 +7,26 @@ to that shared event page. Kufstein 2026 keeps its existing dedicated page
 and confirmed bookings; do not silently migrate its data.
 
 Apply layout improvements centrally so existing and future shared excursion
-pages stay consistent. The common structure is: group branding and trip
-header, activity cards with voting, itinerary, travel information, date poll
-while planning, and participants. A confirmed date hides the calendar and
-its navigation entry without hiding program voting.
+pages stay consistent. The common structure is a destination photo header, then four views in the same
+shared template: Übersicht, Programm & Abstimmung, Termine, Fotos. The view query
+parameter creates linkable event subpages without copying destination HTML.
+Overview contains separate arrival, departure, hotel and participation fields.
+Program contains the automatic itinerary and activity votes. Dates and calendars
+appear only on the Termine view while planning. Photos opens an external album
+link; no upload or synchronization is implied. Keep the small navigation logo,
+but no large logo or category icon above the event's planning status.
+
+Destination covers and structured travel/hotel/album fields live in group_events.
+An explicit cover wins; otherwise use the first existing program photo. Always
+show photo credits/source links and retain a usable fallback for missing images.
+
+Only the event creator edits event metadata or saves/resumes/deletes an event.
+Saved events have status=saved, appear separately on the hub and retain all votes,
+program and dates. Resume preserves an already chosen date. A delete needs an
+explicit typed-title confirmation explaining cascaded data loss; never delete
+real events as a test. Keep the dedicated Kufstein event protected from deletion
+in the shared hub. Backend RLS remains authoritative, including anonymous-auth
+members that joined the group.
 
 Every program item supports multiple source links, optional trip day,
 start/end times (including an explicit next-day end), and a selectable

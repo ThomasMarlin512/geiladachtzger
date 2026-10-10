@@ -1,4 +1,5 @@
-import {installHubTools} from './webmcp-tools.js';
+import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
+import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields} from './event-layout.js?v=structure-20261010-1';
 import {fail} from './webmcp-core.js';
 import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=20261010-2';
 import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram} from './trip-program.js?v=20261010-3';
@@ -13,7 +14,7 @@ let createdDraftId = null, writeBusy = false;
 const currentEventId = new URLSearchParams(location.search).get('id');
 const labels = {yes:'✓ Dabei', maybe:'? Unsicher', no:'✕ Nicht dabei'};
 const dateLabels = {yes:'✓ Passt', maybe:'? Vielleicht', no:'✕ Geht nicht'};
-const stateLabels = {planning:'In Planung',confirmed:'Termin steht'};
+const stateLabels = {planning:'In Planung',confirmed:'Termin steht',saved:'Für später'};
 function todayVienna() {
  const parts = new Intl.DateTimeFormat('en',{timeZone:'Europe/Vienna',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
  const get = type => parts.find(p=>p.type===type).value;
@@ -21,15 +22,14 @@ function todayVienna() {
 }
 function displayDate(value) { return new Intl.DateTimeFormat('de-AT',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Vienna'}).format(new Date(value+'T12:00:00Z')); }
 function dateRange(start,end) { return start ? displayDate(start)+(end!==start?' – '+displayDate(end):'') : 'Termin noch offen'; }
-function safeUrl(value) { try { const u=new globalThis.URL(value);return u.protocol==='https:'?u.href:''; } catch { return ''; } }
-function detailUrl(event) { return 'event.html?id='+encodeURIComponent(event.id); }
+function safeUrl(value) { return httpsUrl(value); }
+function detailUrl(event) { return eventUrl(event); }
 function eventWebsiteUrl(event) { return event.id==='kufstein-2026' ? '/kufstein-2026/' : detailUrl(event); }
 function past(event) { return event.status==='confirmed' && event.end_date < todayVienna(); }
 function nameFor(key) { return people.find(p=>p.member_key===key)?.full_name || directory.find(p=>p.roster_key===key)?.nickname || 'Gruppenmitglied'; }
 function status(message,id='page-status') { if($(id)) $(id).textContent=message; }
 async function init() {
  if(document.body.dataset.page==='event' && currentEventId==='kufstein-2026'){location.replace('/kufstein-2026/');return;}
- if(document.body.dataset.page==='home' && !document.querySelector('.hero-logo')){const fresh=new globalThis.URL(location.href);if(fresh.searchParams.get('v')!=='20261009-2315'){fresh.searchParams.set('v','20261009-2315');location.replace(fresh.href);return;}}
  try {
   if(!window.supabase?.createClient) throw Error('Die Verbindung konnte nicht geladen werden. Bitte Seite neu laden.');
   sb=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true}});
@@ -81,7 +81,7 @@ async function refresh() {
    sb.from('group_event_attendance').select('*'),
    sb.from('group_people').select('id,member_key,full_name').order('full_name'),
    sb.from('trip_attendance').select('user_id,roster_key,nickname'),
-   currentEventId?sb.from('group_program_items').select('*').eq('event_id',currentEventId).order('day_number',{nullsFirst:false}).order('created_at'):Promise.resolve({data:[]}),
+   currentEventId?sb.from('group_program_items').select('*').eq('event_id',currentEventId).order('day_number',{nullsFirst:false}).order('created_at'):sb.from('group_program_items').select('id,event_id,title,image_url,image_source_url,image_credit,day_number,created_at').order('day_number',{nullsFirst:false}).order('created_at'),
    currentEventId?sb.from('group_program_votes').select('*'):Promise.resolve({data:[]}),
    currentEventId?sb.from('group_program_links').select('*').order('created_at'):Promise.resolve({data:[]})
   ]);
@@ -94,18 +94,24 @@ async function refresh() {
  finally {refreshBusy=false;}
 }
 function eventCard(event,isPast=false) {
- return '<article class="event-card"><div class="category" aria-hidden="true">'+(event.kind==='trip'?'⛰':'✦')+'</div><span class="tag '+(isPast?'past':event.status)+'">'+(isPast?'Rückblick':stateLabels[event.status])+'</span><h3>'+esc(event.title)+'</h3><div class="date-line">'+esc(dateRange(event.start_date,event.end_date))+'</div><p>'+esc(event.location||'Ort noch offen')+'</p><a class="button secondary" href="'+esc(eventWebsiteUrl(event))+'">'+(isPast?'Rückblick ansehen':'Veranstaltung ansehen')+' →</a></article>';
+ const cover=eventCover(event,programItems);
+ return '<article class="event-card event-photo-card">'+(cover?'<img class="event-card-photo" src="'+esc(cover.image)+'" alt="" loading="lazy">':'')+'<div class="event-card-content"><span class="tag '+esc(isPast?'past':event.status)+'">'+esc(isPast?'Rückblick':stateLabels[event.status])+'</span><h3>'+esc(event.title)+'</h3><div class="date-line">'+esc(dateRange(event.start_date,event.end_date))+'</div><p>'+esc(event.location||'Ort noch offen')+'</p><div class="card-links"><a class="button secondary" href="'+esc(eventWebsiteUrl(event))+'">'+(isPast?'Rückblick ansehen':'Veranstaltung ansehen')+' →</a>'+(event.status==='planning'?'<a class="text-link" href="'+esc(eventUrl(event,'termine'))+'">Termine abstimmen →</a>':'')+'</div>'+(cover?'<small class="cover-credit"><a href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(cover.credit)+'</a></small>':'')+'</div></article>';
+}
+function wireEventImages() {
+ document.querySelectorAll('.event-card-photo,.trip-hero-photo,.hub-background').forEach(img=>img.addEventListener('error',()=>{img.hidden=true;},{once:true}));
 }
 function renderHome() {
- const coming=events.filter(e=>!past(e)).sort((a,b)=>(a.start_date||'9999').localeCompare(b.start_date||'9999'));
+ const coming=events.filter(e=>e.status!=='saved'&&!past(e)).sort((a,b)=>(a.start_date||'9999').localeCompare(b.start_date||'9999'));
  const previous=events.filter(past).sort((a,b)=>b.start_date.localeCompare(a.start_date));
+ const saved=events.filter(e=>e.status==='saved');
  const next=coming.find(e=>e.status==='confirmed');
  $('event-list').innerHTML=coming.map(e=>eventCard(e)).join('')||'<div class="empty">Noch keine Veranstaltungen geplant.</div>';
+ $('saved-list').innerHTML=saved.map(e=>eventCard(e)).join('')||'<div class="empty">Noch keine Ideen für später gespeichert.</div>';
  $('past-list').innerHTML=previous.map(e=>eventCard(e,true)).join('')||'<div class="empty">Nach unseren Veranstaltungen findet ihr hier die Rückblicke.</div>';
  $('next-event').innerHTML=next?'<div class="next-event"><div><p class="eyebrow">ALS NÄCHSTES</p><h2>'+esc(next.title)+'</h2><p>'+esc(dateRange(next.start_date,next.end_date))+' · '+esc(next.location)+'</p></div><a class="button" href="'+esc(eventWebsiteUrl(next))+'">Zum Ausflug →</a></div>':'';
- const planning=coming.filter(e=>e.status==='planning');
- $('planning-list').innerHTML=planning.map(event=>'<article class="planning-event"><h3><a href="'+detailUrl(event)+'">'+esc(event.title)+' →</a></h3>'+votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,false,id))+'<a class="button secondary date-suggestion-link" href="'+detailUrl(event)+'#date-suggestion">＋ Eigenen Termin vorschlagen</a></article>').join('')||'<div class="empty">Noch keine offenen Terminabstimmungen. Schlagt eure nächste Reise oder ein Treffen vor.</div>';
- wireVotes($('planning-list'));
+ const cover=(next&&eventCover(next,programItems))||coming.map(e=>eventCover(e,programItems)).find(Boolean);
+ $('hub-hero-photo').innerHTML=cover?'<img class="hub-background" src="'+esc(cover.image)+'" alt=""><a class="hub-credit" href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(cover.credit)+'</a>':'';
+ wireEventImages();
 }
 function dateCards(event,organizer,selectedId=null) {
  const dates=options.filter(o=>o.event_id===event.id&&(!selectedId||o.id===selectedId));
@@ -133,29 +139,42 @@ async function voteDate(optionId,choice,button) {
 }
 function renderEvent() {
  const event=events.find(e=>e.id===currentEventId);
- if(!event){$('event-detail').innerHTML='<div class="empty">Diese Veranstaltung wurde nicht gefunden.</div>';$('event-dates-section').hidden=true;$('organizer-section').hidden=true;return;}
+ if(!event){$('event-detail').innerHTML='<div class="empty">Diese Veranstaltung wurde nicht gefunden oder bereits gelöscht. <a href="index.html">Zur Gruppenübersicht</a></div>';$('event-content').hidden=true;return;}
+ $('event-content').hidden=false;
  document.title=event.title+' · Geiladachtzger';
  const organizer=event.created_by_key===memberKey;
- const url=safeUrl(event.website_url);
- const heroPhoto=programItems.map(item=>programPhoto(item)).find(Boolean);
- $('event-detail').innerHTML='<header class="trip-hero">'+(heroPhoto?'<img class="trip-hero-photo" src="'+esc(heroPhoto.image)+'" alt="" aria-hidden="true">':'')+'<div class="trip-hero-content"><img class="trip-wordmark" src="assets/geiladachtzger-logo.webp" alt="Geiladachtzger"><p class="eyebrow">GUTE FREUNDE · SCHÖNE ERLEBNISSE</p><span class="tag '+event.status+'">'+(past(event)?'Rückblick':stateLabels[event.status])+'</span><h1 class="event-title">'+esc(event.title)+'</h1><p>'+esc(dateRange(event.start_date,event.end_date))+' · '+esc(event.location||'Ort noch offen')+'</p></div></header><div class="trip-feature-strip"><span>✦ Gemeinsam unterwegs</span><span>▦ '+programItems.length+' Programmideen</span><span>♧ '+people.length+' Gruppenmitglieder</span></div>';
- $('trip-information').innerHTML='<h3>'+esc(event.location||'Ort noch offen')+'</h3>'+(event.description?'<p class="event-description">'+esc(event.description)+'</p>':'<p>Weitere Informationen zu Unterkunft und Anreise können als Programmpunkte vorgeschlagen werden.</p>')+(url?'<p><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Weitere Reiseinfos ↗</a></p>':'');
- $('event-dates-section').hidden=event.status!=='planning';
+ const url=safeUrl(event.website_url),heroPhoto=eventCover(event,programItems);
+ $('event-detail').innerHTML='<header class="trip-hero">'+(heroPhoto?'<img class="trip-hero-photo" src="'+esc(heroPhoto.image)+'" alt="" aria-hidden="true">':'')+'<div class="trip-hero-content"><span class="tag '+esc(event.status)+'">'+esc(past(event)?'Rückblick':stateLabels[event.status])+'</span><h1 class="event-title">'+esc(event.title)+'</h1><p>'+esc(dateRange(event.start_date,event.end_date))+' · '+esc(event.location||'Ort noch offen')+'</p></div>'+(heroPhoto?'<a class="hero-credit" href="'+esc(heroPhoto.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(heroPhoto.credit)+'</a>':'')+'</header>';
+ $('trip-information').innerHTML=(event.description?'<p class="event-description">'+esc(event.description)+'</p>':'<p class="subtle">Die Beschreibung eurer Reise kann noch ergänzt werden.</p>')+(url?'<p><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Weitere Reiseinfos ↗</a></p>':'');
+ $('travel-details').innerHTML=travelCards(event);
+ $('travel-timeline').innerHTML=travelTimeline(event);
+ $('event-photos').innerHTML=albumCard(event,organizer);
+ $('event-plan-notice').innerHTML=event.status==='saved'?'<p class="planning-notice">Für später gespeichert. Eure Inhalte und bisherigen Stimmen bleiben erhalten; die Terminabstimmung pausiert.</p>':event.status==='planning'?'<p class="planning-notice">Termin noch offen. <a href="'+esc(eventUrl(event,'termine'))+'">Termine vorschlagen & abstimmen →</a></p>':'';
+ $('overview-shortcuts').innerHTML='<a class="overview-link" href="'+esc(eventUrl(event,'programm'))+'"><strong>Programm & Ablauf</strong><span>'+programItems.length+' Ideen · Zeiten, Links und Abstimmung →</span></a><a class="overview-link" href="'+esc(eventUrl(event,'fotos'))+'"><strong>Gemeinsame Fotos</strong><span>'+(safeUrl(event.album_url)?'Fotoalbum öffnen':'Fotoalbum ergänzen')+' →</span></a>';
+ const view=activeView(location.search,location.hash,event);
+ for(const [name,id] of Object.entries({uebersicht:'event-overview',programm:'event-program',termine:'event-dates-section',fotos:'event-photos'})) $(id).hidden=name!==view;
+ document.querySelectorAll('[data-event-view]').forEach(link=>{const name=link.dataset.eventView;link.href=eventUrl(event,name);if(name===view)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
  $('date-nav').hidden=event.status!=='planning';
- if(event.status==='planning'){
+ if(view==='termine'&&event.status==='planning'){
   $('event-dates').innerHTML=votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,organizer,id));wireVotes($('event-dates'));
  }else $('event-dates').replaceChildren();
- renderProgram(event);
- renderPeople(event);
- $('organizer-section').hidden=!organizer;
- $('extra-start').min=todayVienna();
- $('extra-end').min=$('extra-start').value||todayVienna();
+ renderProgram(event);renderPeople(event);
+ $('organizer-section').hidden=!organizer;$('edit-overview').hidden=!organizer;
+ $('save-event-later').textContent=event.status==='saved'?'Planung wieder aufnehmen':'Für später speichern';
+ $('extra-start').min=todayVienna();$('extra-end').min=$('extra-start').value||todayVienna();
  if(location.hash==='#date-suggestion')$('date-suggestion').open=true;
- if(organizer&&!document.activeElement?.closest('#organizer-section')){
-  $('edit-title').value=event.title;$('edit-location').value=event.location;
-  $('edit-description').value=event.description;$('edit-url').value=event.website_url;
-
- }
+ document.querySelectorAll('[data-edit-event]').forEach(button=>{button.onclick=()=>openEventSettings(button.dataset.editEvent);});
+ wireEventImages();
+}
+function openEventSettings(section='general') {
+ if(writeBusy)return;
+ const event=events.find(e=>e.id===currentEventId);if(!event||event.created_by_key!==memberKey)return;
+ $('edit-title').value=event.title;$('edit-location').value=event.location;$('edit-description').value=event.description;$('edit-url').value=event.website_url;
+ for(const field of detailFields)$('edit-'+field).value=field.endsWith('_time')?(event[field]?.slice(0,5)||''):(event[field]||(field==='hotel_status'?'open':''));
+ $('cover-from-program').innerHTML='<option value="">Foto auswählen …</option>'+programItems.filter(programPhoto).map(item=>'<option value="'+esc(item.id)+'">'+esc(item.title)+'</option>').join('');
+ status('','edit-status');$('event-settings-dialog').showModal();
+ $('settings-'+section)?.scrollIntoView({block:'start'});
+ const focus=section==='album'?'edit-album_url':section==='travel'?'edit-outbound_time':'edit-title';$(focus).focus({preventScroll:true});
 }
 function renderPeople(event) {
  const rows=attendance.filter(a=>a.event_id===event.id);
@@ -181,15 +200,15 @@ async function setAttendance(eventId,choice) {
 }
 function addDateRow(start='',end='') {
  const div=document.createElement('div');div.className='date-option';
- div.innerHTML='<div><label>Von<input class="option-start" type="date" required></label></div><div><label>Bis<input class="option-end" type="date" required></label></div><button class="quiet" type="button" aria-label="Terminvorschlag entfernen">✕</button>';
+ div.innerHTML='<div><label>Von<input class="option-start" type="date"></label></div><div><label>Bis<input class="option-end" type="date"></label></div><button class="quiet" type="button" aria-label="Terminvorschlag entfernen">✕</button>';
  div.querySelector('.option-start').value=start;div.querySelector('.option-end').value=end;
  div.querySelector('.option-start').addEventListener('change',e=>{const input=div.querySelector('.option-end');input.min=e.target.value;if(!input.value||input.value<e.target.value)input.value=e.target.value;});
  div.querySelector('button').addEventListener('click',()=>{if($('new-date-options').children.length>1)div.remove();});
  $('new-date-options').append(div);
 }
 function readDates() {
- const dates=[...$('new-date-options').children].map(row=>({start_date:row.querySelector('.option-start').value,end_date:row.querySelector('.option-end').value}));
- if(dates.some(d=>!d.start_date||!d.end_date||d.end_date<d.start_date))throw Error('Bitte gültige Termine auswählen.');
+ const dates=[...$('new-date-options').children].map(row=>({start_date:row.querySelector('.option-start').value,end_date:row.querySelector('.option-end').value})).filter(d=>d.start_date||d.end_date);
+ if(dates.some(d=>!d.start_date||!d.end_date||d.end_date<d.start_date||d.start_date<todayVienna()))throw Error('Bitte gültige Termine auswählen.');
  return dates.filter((d,i)=>dates.findIndex(x=>x.start_date===d.start_date&&x.end_date===d.end_date)===i);
 }
 function wireForms() {
@@ -201,6 +220,14 @@ function wireForms() {
  $('add-date-option')?.addEventListener('click',()=>{if($('new-date-options').children.length<8)addDateRow();});
  $('new-event-form')?.addEventListener('submit',createEvent);
  $('edit-event-form')?.addEventListener('submit',editEvent);
+ $('close-event-settings')?.addEventListener('click',()=>{if(!writeBusy)$('event-settings-dialog').close();});
+ $('event-settings-dialog')?.addEventListener('cancel',e=>{if(writeBusy)e.preventDefault();});
+ $('save-event-later')?.addEventListener('click',saveEventLater);
+ $('delete-event-button')?.addEventListener('click',openDeleteEvent);
+ $('close-delete-event')?.addEventListener('click',()=>{if(!writeBusy)$('delete-event-dialog').close();});
+ $('delete-event-dialog')?.addEventListener('cancel',e=>{if(writeBusy)e.preventDefault();});
+ $('delete-event-form')?.addEventListener('submit',deleteEvent);
+ $('cover-from-program')?.addEventListener('change',e=>{const photo=programItems.find(i=>i.id===e.target.value);const cover=photo&&programPhoto(photo);if(cover){$('edit-cover_image_url').value=cover.image;$('edit-cover_source_url').value=cover.source;$('edit-cover_credit').value=cover.credit;}});
  $('add-option-form')?.addEventListener('submit',addOption);
  $('propose-program')?.addEventListener('click',()=>{if(writeBusy)return;$('program-form').reset();status('','program-form-status');$('program-dialog').showModal();$('program-title').focus();});
  $('close-program')?.addEventListener('click',()=>$('program-dialog').close());
@@ -216,7 +243,7 @@ function wireForms() {
  $('extra-start')?.addEventListener('change',()=>{const start=$('extra-start').value;$('extra-end').min=start||todayVienna();if(start&&(!$('extra-end').value||$('extra-end').value<start))$('extra-end').value=start;});
 }
 async function createEvent(e) {
- e.preventDefault();if(writeBusy)return;writeBusy=true;$('create-event').disabled=true;status('Wird gespeichert …','create-status');
+ e.preventDefault();if(writeBusy)return;writeBusy=true;const saveMode=e.submitter?.value==='saved'?'saved':'planning';$('new-event-form').querySelectorAll('[type=submit]').forEach(b=>b.disabled=true);status('Wird gespeichert …','create-status');
  try {
   const dates=readDates();
   if(!createdDraftId){
@@ -229,9 +256,10 @@ async function createEvent(e) {
   if(existing.error)throw existing.error;
   const missing=dates.filter(d=>!existing.data.some(x=>x.start_date===d.start_date&&x.end_date===d.end_date));
   if(missing.length){const r=await sb.from('group_event_dates').insert(missing.map(d=>({...d,event_id:createdDraftId})));if(r.error)throw r.error;}
+  if(saveMode==='saved'){const saved=await sb.from('group_events').update({status:'saved'}).eq('id',createdDraftId).select().single();if(saved.error)throw saved.error;}
   const savedId=createdDraftId;createdDraftId=null;$('event-dialog').close();location.href='event.html?id='+encodeURIComponent(savedId);
  }catch(error){status((createdDraftId?'Veranstaltung gespeichert, Termine noch offen. Bitte erneut speichern. ':'')+(error.message||String(error)),'create-status');}
- finally{writeBusy=false;$('create-event').disabled=false;}
+ finally{writeBusy=false;$('new-event-form').querySelectorAll('[type=submit]').forEach(b=>b.disabled=false);}
 }
 async function finalize(optionId,button) {
  if(writeBusy)return;
@@ -246,13 +274,46 @@ async function finalize(optionId,button) {
 }
 async function editEvent(e) {
  e.preventDefault();if(writeBusy)return;writeBusy=true;
- const button=e.target.querySelector('button');button.disabled=true;
+ const button=e.target.querySelector('[type=submit]');button.disabled=true;
  try {
-  const raw=$('edit-url').value.trim();if(raw&&!safeUrl(raw))throw Error('Bitte eine https://-Adresse eingeben.');
-  const r=await sb.from('group_events').update({title:$('edit-title').value.trim(),location:$('edit-location').value.trim(),description:$('edit-description').value.trim(),website_url:raw}).eq('id',currentEventId).select().single();
-  if(r.error)throw r.error;await refresh();status('Gespeichert.','edit-status');
+  const data={title:$('edit-title').value.trim(),location:$('edit-location').value.trim(),description:$('edit-description').value.trim(),website_url:$('edit-url').value.trim()};
+  for(const field of detailFields)data[field]=$('edit-'+field).value.trim()||(field.endsWith('_time')?null:'');
+  for(const field of ['website_url',...detailFields.filter(f=>f.endsWith('_url'))]){if(data[field]&&!safeUrl(data[field]))throw Error('Bitte gültige https://-Links ohne Zugangsdaten eingeben.');if(data[field])data[field]=safeUrl(data[field]);}
+  if(data.cover_image_url&&!data.cover_source_url)throw Error('Bitte den Quellenlink zum Hintergrundfoto ergänzen.');
+  if(!data.cover_image_url){data.cover_source_url='';data.cover_credit='';}
+  const r=await sb.from('group_events').update(data).eq('id',currentEventId).select().single();
+  if(r.error)throw r.error;await refresh();$('event-settings-dialog').close();status('Reisedaten gespeichert.');
  }catch(e){status('Nicht gespeichert: '+e.message,'edit-status');}
  finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
+}
+async function saveEventLater() {
+ if(writeBusy)return;
+ const event=events.find(e=>e.id===currentEventId);if(!event||event.created_by_key!==memberKey)return;
+ const next=event.status==='saved'?(event.start_date?'confirmed':'planning'):'saved';
+ writeBusy=true;$('save-event-later').disabled=true;
+ try{
+  const r=await sb.from('group_events').update({status:next}).eq('id',event.id).eq('status',event.status).select().single();
+  if(r.error)throw r.error;await refresh();status(next==='saved'?'Für später gespeichert. Inhalte und Stimmen bleiben erhalten.':'Veranstaltung wieder aktiviert.','manage-status');
+ }catch(error){status('Nicht gespeichert: '+error.message,'manage-status');}
+ finally{writeBusy=false;$('save-event-later').disabled=false;}
+}
+function openDeleteEvent() {
+ if(writeBusy)return;
+ const event=events.find(e=>e.id===currentEventId);if(!event||event.created_by_key!==memberKey)return;
+ $('delete-event-form').reset();$('delete-event-warning').textContent='Du löschst „'+event.title+'“ mit '+programItems.length+' Programmideen und '+options.filter(d=>d.event_id===event.id).length+' Terminvorschlägen.';
+ status('','delete-status');$('delete-event-dialog').showModal();$('delete-confirm-title').focus();
+}
+async function deleteEvent(e) {
+ e.preventDefault();if(writeBusy)return;
+ const event=events.find(e=>e.id===currentEventId);if(!event||event.created_by_key!==memberKey)return;
+ if($('delete-confirm-title').value.trim()!==event.title){status('Der Titel stimmt noch nicht überein.','delete-status');return;}
+ writeBusy=true;const button=e.target.querySelector('[type=submit]');button.disabled=true;
+ try{
+  const r=await sb.from('group_events').delete().eq('id',event.id).eq('created_by_key',memberKey).select('id').single();
+  if(r.error)throw r.error;if(r.data?.id!==event.id)throw Error('Löschung wurde nicht bestätigt.');
+  location.href='index.html';
+ }catch(error){status('Nicht gelöscht: '+error.message,'delete-status');}
+ finally{writeBusy=false;button.disabled=false;}
 }
 async function addOption(e) {
  e.preventDefault();if(writeBusy)return;writeBusy=true;
@@ -410,6 +471,7 @@ installHubTools({
   $('event-dialog').showModal();$('event-title').focus();
  }:null
 });
+addEventListener('hashchange',()=>{if(document.body.dataset.page==='event'&&memberKey)renderEvent();});
 init();
 
 

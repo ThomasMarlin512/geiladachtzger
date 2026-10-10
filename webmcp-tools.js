@@ -1,7 +1,7 @@
 import {choiceSchema,idSchema,schema,fail,rows,requireMember,installTools,savedResult} from './webmcp-core.js';
 
 export function installHubTools(app) {
- const eventFields='id,title,kind,description,location,status,start_date,end_date,website_url,default_participation,created_by_key';
+ const eventFields='id,title,kind,description,location,status,start_date,end_date,website_url,default_participation,created_by_key,outbound_time,outbound_details,outbound_url,return_time,return_details,return_url,hotel_name,hotel_url,hotel_details,hotel_status,album_url,album_label,cover_image_url,cover_source_url,cover_credit';
  async function member() {
   const client=app.client();
   const current=await requireMember(client,app.userId(),app.ready());
@@ -81,3 +81,4 @@ export function installHubTools(app) {
   }});
  installTools(tools);
 }
+

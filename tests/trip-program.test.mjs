@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields} from '../event-layout.js';
 const moduleSource=readFileSync(new URL('../trip-program.js',import.meta.url),'utf8');
 const {httpsUrl,dayLabel,programCards,programTimeline,scheduleLabel,sortProgram,programPhoto}=await import('data:text/javascript;base64,'+Buffer.from(moduleSource).toString('base64'));
 assert.equal(httpsUrl('javascript:alert(1)'), '');
@@ -23,7 +24,7 @@ const renderSource=source.slice(source.indexOf('function renderEvent()'),source.
 const nodes=new Map();
 const get=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,value:'',innerHTML:'',replaceChildren(){this.innerHTML='';}});return nodes.get(id);};
 const event={id:'trip',status:'planning',title:'Test',location:'Test',created_by_key:'someone',description:'Test',website_url:''};
-const context={$:get,events:[event],currentEventId:'trip',document:{activeElement:null},memberKey:'member',programItems:[],programPhoto,httpsUrl,esc:String,safeUrl:()=>'',past:()=>false,dateRange:()=>'',people:[],stateLabels:{planning:'In Planung',confirmed:'Termin steht'},options:[],votes:[],votingCalendar:()=>'<calendar/>',dateCards:()=>'',wireVotes:()=>{},renderProgram:()=>{},renderPeople:()=>{},todayVienna:()=> '2026-10-10',location:{hash:''}};
+const context={$:get,events:[event],currentEventId:'trip',document:{activeElement:null,querySelectorAll:()=>[]},memberKey:'member',programItems:[],programPhoto,httpsUrl,eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields,wireEventImages:()=>{},esc:String,safeUrl:()=>'',past:()=>false,dateRange:()=>'',people:[],stateLabels:{planning:'In Planung',confirmed:'Termin steht'},options:[],votes:[],votingCalendar:()=>'<calendar/>',dateCards:()=>'',wireVotes:()=>{},renderProgram:()=>{},renderPeople:()=>{},todayVienna:()=> '2026-10-10',location:{hash:'',search:'?id=trip&view=termine'}};
 vm.createContext(context);vm.runInContext(renderSource,context);context.renderEvent();
 assert.equal(get('event-dates-section').hidden,false);
 assert.equal(get('organizer-section').hidden,true);
@@ -33,6 +34,14 @@ assert.equal(get('event-dates-section').hidden,true);
 assert.equal(get('date-nav').hidden,true);
 assert.equal(get('event-dates').innerHTML,'');
 assert.ok(get('trip-information').innerHTML.includes('Test'));
+assert.equal(get('event-overview').hidden,false);
+event.status='saved';context.renderEvent();assert.equal(get('date-nav').hidden,true);
+assert.match(get('event-plan-notice').innerHTML,/Für später/);
+event.status='planning';context.location.search='?id=trip';context.renderEvent();
+assert.equal(get('event-dates-section').hidden,true);assert.equal(get('event-dates').innerHTML,'');
+context.location.search='?id=trip&view=programm';context.renderEvent();assert.equal(get('event-program').hidden,false);
+context.location.search='?id=trip&view=fotos';context.renderEvent();assert.equal(get('event-photos').hidden,false);
+context.events=[];context.renderEvent();assert.equal(get('event-content').hidden,true);
 console.log('PASS: safe links, escaping, vote counts, relative itinerary dates and calendar removal after confirmation');
 
 assert.equal(scheduleLabel({start_time:'18:00:00',end_time:'01:00:00',ends_next_day:true}),'18:00–01:00 (+1 Tag)');
