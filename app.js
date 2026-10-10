@@ -1,3 +1,5 @@
+import {installHubTools} from './webmcp-tools.js';
+import {fail} from './webmcp-core.js';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const URL = 'https://rzzipqdozabuxrmoxhlw.supabase.co';
@@ -234,4 +236,23 @@ async function addOption(e) {
  }catch(e){status('Nicht gespeichert: '+e.message,'extra-status');}
  finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
 }
+installHubTools({
+ client:()=>sb,userId:()=>user?.id,ready:()=>Boolean(memberKey && !$('app').hidden),
+ busy:()=>writeBusy||busy||refreshBusy,setBusy:value=>{writeBusy=value;if(!value&&$('own-attendance'))$('own-attendance').disabled=false;},today:todayVienna,
+ eventUrl:event=>new globalThis.URL(eventWebsiteUrl(event),location.href).href,
+ apply:data=>{
+  [events,options,votes,attendance,people,directory]=data;
+  if(document.body.dataset.page==='home')renderHome();else renderEvent();
+ },
+ prepare:document.body.dataset.page==='home'?input=>{
+  if(createdDraftId || $('event-dialog').open)fail('DRAFT_OPEN','Ein Veranstaltungsentwurf ist bereits offen. Bitte zuerst speichern oder schließen.');
+  $('new-event-form').reset();$('new-date-options').innerHTML='';
+  $('event-title').value=input.title.trim();$('event-kind').value=input.kind;
+  $('event-location').value=input.location||'';$('event-description').value=input.description||'';
+  input.dates.forEach(d=>addDateRow(d.start_date,d.end_date));
+  status('Entwurf vorbereitet – noch nicht gespeichert.','create-status');
+  $('event-dialog').showModal();$('event-title').focus();
+ }:null
+});
 init();
+
