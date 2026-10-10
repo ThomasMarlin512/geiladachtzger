@@ -19,8 +19,9 @@ export async function loadPage(value,remaining=3) {
  if(!addresses.length||addresses.some(ip=>!publicIPv4(ip)))throw Error('Die Zieladresse ist nicht öffentlich erreichbar.');
  // Pin the validated address; keep the original hostname for TLS and Host.
  const response=await new Promise((resolve,reject)=>{
-  const req=request(url,{method:'GET',agent:false,family:4,lookup:(_h,_o,cb)=>cb(null,addresses[0],4),
-   headers:{'User-Agent':'Geiladachtzger-LinkPreview/1.0','Accept':'text/html,application/xhtml+xml','Accept-Encoding':'identity'}},res=>{
+  const target=new URL(url);target.hostname=addresses[0];
+  const req=request(target,{method:'GET',agent:false,family:4,servername:url.hostname,rejectUnauthorized:true,
+   headers:{'Host':url.host,'User-Agent':'Geiladachtzger-LinkPreview/1.0','Accept':'text/html,application/xhtml+xml','Accept-Encoding':'identity'}},res=>{
    if(res.statusCode>=300&&res.statusCode<400){res.resume();resolve({redirect:res.headers.location});return;}
    if(res.statusCode!==200){res.resume();reject(Error('Die Webseite liefert kein nutzbares Ergebnis.'));return;}
    if(!/text\/html|application\/xhtml\+xml/.test(res.headers['content-type']||'')){res.resume();reject(Error('Dieser Link führt nicht auf eine HTML-Webseite.'));return;}
