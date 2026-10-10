@@ -9,3 +9,5 @@
 /* Shared group logo */
 .logo-heading{margin:0 0 20px!important;line-height:0!important}.group-logo{display:block;width:100%;height:auto;border-radius:14px}.auth-logo{margin:8px 0 20px}.hero-logo{max-width:700px}.brand-logo{display:block;width:170px;height:auto;border-radius:5px}.brand span{margin-top:6px}.auth-card .logo-heading{font-size:inherit}.hero .logo-heading{max-width:700px}@media(max-width:700px){.hero-logo{max-width:100%}.brand-logo{width:145px}}
 
+
+.date-suggestion{margin-top:1.5rem;scroll-margin-top:7rem}.date-suggestion summary{cursor:pointer;font-weight:700}.date-suggestion-link{margin-top:1rem}
