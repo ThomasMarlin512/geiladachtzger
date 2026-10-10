@@ -1,6 +1,6 @@
 import {installHubTools} from './webmcp-tools.js';
 import {fail} from './webmcp-core.js';
-import {votingCalendar,wireVotingCalendars} from './voting-calendar.js?v=20261010-1';
+import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=20261010-2';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const URL = 'https://rzzipqdozabuxrmoxhlw.supabase.co';
@@ -98,7 +98,7 @@ function renderHome() {
  $('past-list').innerHTML=previous.map(e=>eventCard(e,true)).join('')||'<div class="empty">Nach unseren Veranstaltungen findet ihr hier die Rückblicke.</div>';
  $('next-event').innerHTML=next?'<div class="next-event"><div><p class="eyebrow">ALS NÄCHSTES</p><h2>'+esc(next.title)+'</h2><p>'+esc(dateRange(next.start_date,next.end_date))+' · '+esc(next.location)+'</p></div><a class="button" href="'+esc(eventWebsiteUrl(next))+'">Zum Ausflug →</a></div>':'';
  const planning=coming.filter(e=>e.status==='planning');
- $('planning-list').innerHTML=planning.map(event=>'<article class="planning-event"><h3><a href="'+detailUrl(event)+'">'+esc(event.title)+' →</a></h3>'+votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,false,id))+'</article>').join('')||'<div class="empty">Noch keine offenen Terminabstimmungen. Schlagt eure nächste Reise oder ein Treffen vor.</div>';
+ $('planning-list').innerHTML=planning.map(event=>'<article class="planning-event"><h3><a href="'+detailUrl(event)+'">'+esc(event.title)+' →</a></h3>'+votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,false,id))+'<a class="button secondary date-suggestion-link" href="'+detailUrl(event)+'#date-suggestion">＋ Eigenen Termin vorschlagen</a></article>').join('')||'<div class="empty">Noch keine offenen Terminabstimmungen. Schlagt eure nächste Reise oder ein Treffen vor.</div>';
  wireVotes($('planning-list'));
 }
 function dateCards(event,organizer,selectedId=null) {
@@ -136,10 +136,13 @@ function renderEvent() {
  $('event-dates').innerHTML=votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,organizer,id));wireVotes($('event-dates'));
  renderPeople(event);
  $('organizer-section').hidden=!organizer;
+ $('extra-start').min=todayVienna();
+ $('extra-end').min=$('extra-start').value||todayVienna();
+ if(location.hash==='#date-suggestion')$('date-suggestion').open=true;
  if(organizer&&!document.activeElement?.closest('#organizer-section')){
   $('edit-title').value=event.title;$('edit-location').value=event.location;
   $('edit-description').value=event.description;$('edit-url').value=event.website_url;
-  $('add-option-form').hidden=event.status!=='planning';
+
  }
 }
 function renderPeople(event) {
@@ -187,6 +190,7 @@ function wireForms() {
  $('new-event-form')?.addEventListener('submit',createEvent);
  $('edit-event-form')?.addEventListener('submit',editEvent);
  $('add-option-form')?.addEventListener('submit',addOption);
+ $('extra-start')?.addEventListener('change',()=>{const start=$('extra-start').value;$('extra-end').min=start||todayVienna();if(start&&(!$('extra-end').value||$('extra-end').value<start))$('extra-end').value=start;});
 }
 async function createEvent(e) {
  e.preventDefault();if(writeBusy)return;writeBusy=true;$('create-event').disabled=true;status('Wird gespeichert …','create-status');
@@ -233,8 +237,13 @@ async function addOption(e) {
  try {
   const start=$('extra-start').value,end=$('extra-end').value;
   if(!start||!end||end<start)throw Error('Bitte gültige Termine auswählen.');
-  const r=await sb.from('group_event_dates').insert({event_id:currentEventId,start_date:start,end_date:end});if(r.error)throw r.error;
-  e.target.reset();await refresh();status('Termin hinzugefügt.','extra-status');
+  if(start<todayVienna())throw Error('Bitte einen heutigen oder zukünftigen Zeitraum wählen.');
+  if(events.find(event=>event.id===currentEventId)?.status!=='planning')throw Error('Die Terminplanung ist bereits abgeschlossen.');
+  if(options.some(option=>option.event_id===currentEventId&&option.start_date===start&&option.end_date===end))throw Error('Dieser Zeitraum steht bereits zur Abstimmung.');
+  const r=await sb.from('group_event_dates').insert({event_id:currentEventId,start_date:start,end_date:end}).select().single();
+  if(r.error){if(r.error.code==='23505')throw Error('Dieser Zeitraum steht bereits zur Abstimmung.');throw r.error;}
+  selectCalendarDate(currentEventId,r.data.id,start);
+  e.target.reset();await refresh();status('Termin hinzugefügt. Alle können jetzt darüber abstimmen.','extra-status');
  }catch(e){status('Nicht gespeichert: '+e.message,'extra-status');}
  finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
 }
