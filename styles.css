@@ -28,3 +28,11 @@ body[data-page=event] .event-main{max-width:1450px}
 @media(max-width:1050px){.program-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.trip-info-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.program-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.program-vote{grid-template-columns:1fr}.program-content{padding:14px}.program-content h3{font-size:18px}.program-photo,.program-cover{height:140px}.trip-hero{padding:32px 15px;min-height:300px}.trip-feature-strip{font-size:11px}}
 @media(max-width:430px){.program-grid{grid-template-columns:1fr}.program-vote{grid-template-columns:repeat(3,minmax(0,1fr))}.program-photo,.program-cover{height:180px}.trip-info-grid .panel{padding:19px}}
+
+/* Program details are shared across every excursion, including future ones. */
+.program-edit-media{font-size:12px;min-height:44px;width:100%;margin-top:4px}
+.inline-check{display:flex;align-items:center;gap:10px;font-weight:400}.inline-check input{width:20px;height:20px;flex:0 0 20px}
+input[type=time]{color-scheme:dark}
+#program-media-dialog{width:min(94vw,720px)}#program-media-form button[type=submit]{width:100%;margin-top:14px}
+#load-program-photos{margin-top:12px}.media-candidates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.media-candidate{display:flex;flex-direction:column;padding:5px;background:#13384a;color:#eefbff;border-color:#40687c;min-width:0}.media-candidate img{width:100%;height:100px;object-fit:cover;border-radius:7px}.media-candidate span{font-size:11px;padding:5px}.media-candidate[aria-pressed=true]{outline:3px solid #a3edcb}.media-selected-image{width:100%;max-height:260px;object-fit:contain;margin-top:15px;border-radius:10px;background:#061725}
+@media(max-width:500px){.media-candidates{grid-template-columns:repeat(2,minmax(0,1fr))}}
