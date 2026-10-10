@@ -1,0 +1,1 @@
+grant update(description) on public.group_program_items to authenticated;
