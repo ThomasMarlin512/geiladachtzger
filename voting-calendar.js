@@ -88,3 +88,7 @@ export function wireVotingCalendars(container, rerender, isBusy=()=>false) {
   calendar.querySelector('.vote-people')?.addEventListener('toggle',e=>{const state=viewState.get(eventId);if(state)state.openVotes=e.target.open;});
  });
 }
+
+export function selectCalendarDate(eventId,id,start) {
+ viewState.set(eventId,{month:monthNumber(start),selected:id,openVotes:false});
+}
