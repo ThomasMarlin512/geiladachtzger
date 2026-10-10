@@ -36,7 +36,7 @@ export function votingCalendar(event, allOptions, allVotes, memberKey, people, r
  const voteRows = option => allVotes.filter(v=>v.option_id===option.id);
  const ownChoice = option => voteRows(option).find(v=>v.member_key===memberKey)?.choice || 'pending';
  const counts = option => {
-  const rows=voteRows(option),keys=new Set([...people.map(p=>p.member_key),...rows.map(r=>r.member_key)]);
+  const rows=voteRows(option),keys=new Set([...people.map((p,i)=>p.member_key||'pending:'+(p.id||i)),...rows.map(r=>r.member_key)]);
   const result={yes:0,maybe:0,no:0,pending:0,total:keys.size};
   for(const row of rows)if(row.choice in answers && row.choice!=='pending')result[row.choice]++;
   result.pending=Math.max(0,result.total-rows.length);

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {summarizeDates,formatPeriod} from '../planning-overview.js';
 import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields} from '../event-layout.js';
 const moduleSource=readFileSync(new URL('../trip-program.js',import.meta.url),'utf8');
 const {httpsUrl,dayLabel,programCards,programTimeline,scheduleLabel,sortProgram,programPhoto}=await import('data:text/javascript;base64,'+Buffer.from(moduleSource).toString('base64'));
@@ -24,15 +25,15 @@ const renderSource=source.slice(source.indexOf('function renderEvent()'),source.
 const nodes=new Map();
 const get=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,value:'',innerHTML:'',replaceChildren(){this.innerHTML='';}});return nodes.get(id);};
 const event={id:'trip',status:'planning',title:'Test',location:'Test',created_by_key:'someone',description:'Test',website_url:''};
-const context={$:get,events:[event],currentEventId:'trip',document:{activeElement:null,querySelectorAll:()=>[]},memberKey:'member',programItems:[],programPhoto,httpsUrl,eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields,wireEventImages:()=>{},esc:String,safeUrl:()=>'',past:()=>false,dateRange:()=>'',people:[],stateLabels:{planning:'In Planung',confirmed:'Termin steht'},options:[],votes:[],votingCalendar:()=>'<calendar/>',dateCards:()=>'',wireVotes:()=>{},renderProgram:()=>{},renderPeople:()=>{},todayVienna:()=> '2026-10-10',location:{hash:'',search:'?id=trip&view=termine'}};
-vm.createContext(context);vm.runInContext(renderSource,context);context.renderEvent();
+const context={$:get,summarizeDates,formatPeriod,dateLabels:{yes:'✓ Passt',maybe:'? Vielleicht',no:'✕ Geht nicht'},nameFor:key=>key,events:[event],currentEventId:'trip',document:{activeElement:null,querySelectorAll:()=>[]},memberKey:'member',programItems:[],programPhoto,httpsUrl,eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields,wireEventImages:()=>{},esc:String,safeUrl:()=>'',past:()=>false,dateRange:()=>'',people:[],stateLabels:{planning:'In Planung',confirmed:'Termin steht'},options:[],votes:[],votingCalendar:()=>'<calendar/>',dateCards:()=>'',wireVotes:()=>{},renderProgram:()=>{},renderPeople:()=>{},todayVienna:()=> '2026-10-10',location:{hash:'',search:'?id=trip&view=termine'}};
+vm.createContext(context);vm.runInContext(source.slice(source.indexOf('function dateCards('),source.indexOf('function wireVotes(')),context);vm.runInContext(renderSource,context);context.renderEvent();
 assert.equal(get('event-dates-section').hidden,false);
 assert.equal(get('organizer-section').hidden,true);
 assert.equal(get('event-dates').innerHTML,'<calendar/>');
 event.status='confirmed';context.renderEvent();
 assert.equal(get('event-dates-section').hidden,true);
 assert.equal(get('date-nav').hidden,true);
-assert.equal(get('event-dates').innerHTML,'');
+assert.equal(get('event-dates').innerHTML,'');assert.equal(get('date-comparison').innerHTML,'');
 assert.ok(get('trip-information').innerHTML.includes('Test'));
 assert.equal(get('event-overview').hidden,false);
 event.status='saved';context.renderEvent();assert.equal(get('date-nav').hidden,true);

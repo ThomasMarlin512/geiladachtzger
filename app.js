@@ -1,8 +1,9 @@
-import {createMemberDirectory} from './member-directory.js?v=members-20261010-1';
+import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=clarity-20261010-1';
+import {createMemberDirectory} from './member-directory.js?v=clarity-20261010-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
-import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields} from './event-layout.js?v=structure-20261010-1';
+import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=clarity-20261010-1';
 import {fail} from './webmcp-core.js';
-import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=20261010-2';
+import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=clarity-20261010-1';
 import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram} from './trip-program.js?v=20261010-3';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -39,6 +40,7 @@ async function init() {
   $('login-form').addEventListener('submit',e=>{e.preventDefault();authenticate(false);});
   $('join-form').addEventListener('submit',e=>{e.preventDefault();authenticate(true);});
   wireForms();
+  document.querySelectorAll('.hub-nav a[href^="#"]').forEach(link=>link.addEventListener('click',()=>{const target=document.getElementById(link.hash.slice(1));if(target?.tagName==='DETAILS')target.open=true;}));
   if($('event-settings-link')&&currentEventId)$('event-settings-link').href='einstellungen.html?'+new URLSearchParams({event:currentEventId});
   const {data,error}=await sb.auth.getSession();if(error)throw error;
   if(data.session) { user=data.session.user;await enter(); }
@@ -76,7 +78,7 @@ async function enter() {
  }
  $('auth').hidden=true;$('app').hidden=false;$('member-name').textContent=member.display_name;
  await refresh();
- if(location.hash==='#mitglieder')$('mitglieder')?.scrollIntoView({block:'start'});
+ revealHomeSection();
  if(!timer)timer=setInterval(()=>{if(!document.hidden&&!writeBusy&&!document.activeElement?.closest('form')&&document.activeElement?.tagName!=='SELECT')refresh();},15000);
 }
 async function refresh() {
@@ -102,37 +104,57 @@ async function refresh() {
  } catch(e) {status('Aktualisierung fehlgeschlagen: '+(e.message||String(e)));}
  finally {refreshBusy=false;}
 }
+function revealHomeSection(){
+ if(document.body.dataset.page!=='home')return;
+ const id=location.hash.slice(1);
+ if(!['mitglieder','termine','fotos','kommende','spaeter','rueckblick'].includes(id))return;
+ const target=$(id);if(!target||target.hidden)return;
+ if(target.tagName==='DETAILS')target.open=true;
+ target.scrollIntoView({block:'start'});
+}
 function eventCard(event,isPast=false) {
  const cover=eventCover(event,programItems);
  return '<article class="event-card event-photo-card">'+(cover?'<img class="event-card-photo" src="'+esc(cover.image)+'" alt="" loading="lazy">':'')+'<div class="event-card-content"><span class="tag '+esc(isPast?'past':event.status)+'">'+esc(isPast?'Rückblick':stateLabels[event.status])+'</span><h3>'+esc(event.title)+'</h3><div class="date-line">'+esc(dateRange(event.start_date,event.end_date))+'</div><p>'+esc(event.location||'Ort noch offen')+'</p><div class="card-links"><a class="button secondary" href="'+esc(eventWebsiteUrl(event))+'">'+(isPast?'Rückblick ansehen':'Veranstaltung ansehen')+' →</a>'+(event.status==='planning'?'<a class="text-link" href="'+esc(eventUrl(event,'termine'))+'">Termine abstimmen →</a>':'')+'</div>'+(cover?'<small class="cover-credit"><a href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(cover.credit)+'</a></small>':'')+'</div></article>';
 }
 function wireEventImages() {
- document.querySelectorAll('.event-card-photo,.trip-hero-photo,.hub-background').forEach(img=>img.addEventListener('error',()=>{img.hidden=true;},{once:true}));
+ document.querySelectorAll('.event-card-photo,.trip-hero-photo,.hub-background,.album-destination-cover').forEach(img=>img.addEventListener('error',()=>{img.hidden=true;},{once:true}));
 }
 function renderHome() {
  const coming=events.filter(e=>e.status!=='saved'&&!past(e)).sort((a,b)=>(a.start_date||'9999').localeCompare(b.start_date||'9999'));
  const previous=events.filter(past).sort((a,b)=>b.start_date.localeCompare(a.start_date));
  const saved=events.filter(e=>e.status==='saved');
  const next=coming.find(e=>e.status==='confirmed');
- $('event-list').innerHTML=coming.filter(e=>e.id!==next?.id).map(e=>eventCard(e)).join('')||'<div class="empty">'+(next?'Noch keine weiteren Vorschläge.':'Noch keine Veranstaltungen vorgeschlagen.')+'</div>';
+ $('event-list').innerHTML=coming.filter(e=>e.id!==next?.id&&e.status!=='planning').map(e=>eventCard(e)).join('');
  $('hub-hero').classList.toggle('has-next',Boolean(next));
  $('saved-list').innerHTML=saved.map(e=>eventCard(e)).join('')||'<div class="empty">Noch keine Ideen für später gespeichert.</div>';
- $('past-list').innerHTML=previous.map(e=>eventCard(e,true)).join('')||'<div class="empty">Nach unseren Veranstaltungen findet ihr hier die Rückblicke.</div>';
- $('next-event').innerHTML=next?'<div class="next-event"><div><p class="eyebrow">ALS NÄCHSTES</p><h2>'+esc(next.title)+'</h2><p>'+esc(dateRange(next.start_date,next.end_date))+' · '+esc(next.location)+'</p></div><a class="button" href="'+esc(eventWebsiteUrl(next))+'">Zum Ausflug →</a></div>':'';
+ $('past-list').innerHTML=previous.map(e=>eventCard(e,true)).join('');
+ $('rueckblick').hidden=previous.length===0;$('past-count').textContent=String(previous.length);$('saved-count').textContent=String(saved.length);
+ $('planning-overview').innerHTML=planningCards(events,options,votes,memberKey,people,todayVienna());
+ $('photo-albums').innerHTML=photoCards(events,programItems);
+ $('next-event').innerHTML=next?'<div class="next-event"><div><p class="eyebrow">ALS NÄCHSTES</p><h2>'+esc(next.title)+'</h2><p>'+esc(dateRange(next.start_date,next.end_date))+' · '+esc(next.location)+'</p></div><div class="hero-actions"><a class="button" href="'+esc(eventWebsiteUrl(next))+'">Zum Ausflug →</a><a class="button secondary photo-button" href="'+esc(photoPageUrl(next))+'">📷 Fotos</a></div></div>':'';
  const cover=next?eventCover(next,programItems):null;
  $('hub-hero-photo').innerHTML=cover?'<img class="hub-background" src="'+esc(cover.image)+'" alt=""><a class="hub-credit" href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(cover.credit)+'</a>':'';
  wireEventImages();
 }
 function dateCards(event,organizer,selectedId=null) {
- const dates=options.filter(o=>o.event_id===event.id&&(!selectedId||o.id===selectedId));
- if(!dates.length)return '<div class="empty">Noch keine Terminvorschläge.</div>';
+ const eventOptions=options.filter(o=>o.event_id===event.id);
+ const dates=eventOptions.filter(o=>!selectedId||o.id===selectedId).sort((a,b)=>a.start_date.localeCompare(b.start_date)||a.end_date.localeCompare(b.end_date));
+ if(!dates.length)return '<div class="empty">Noch keine Terminvorschläge. Schlag oben einen Zeitraum vor.</div>';
+ const summary=summarizeDates(eventOptions,votes,memberKey,people,todayVienna());
+ const all=summarizeDates(eventOptions,votes,memberKey,people);
  return dates.map(option=>{
   const rows=votes.filter(v=>v.option_id===option.id);
-  const own=rows.find(v=>v.member_key===memberKey)?.choice;
-  const count=choice=>rows.filter(v=>v.choice===choice).length;
-  const closed=event.status!=='planning'||option.end_date<todayVienna();
-  return '<div class="date-card"><div class="date-info"><strong>'+esc(dateRange(option.start_date,option.end_date))+'</strong><small>'+count('yes')+' passt · '+count('maybe')+' vielleicht · '+count('no')+' geht nicht</small></div><div class="date-actions">'+Object.entries(dateLabels).map(([choice,label])=>'<button type="button" data-option="'+esc(option.id)+'" data-choice="'+choice+'" class="'+(own===choice?'selected '+choice:'')+'" '+(closed?'disabled':'')+' aria-pressed="'+(own===choice)+'">'+label+'</button>').join('')+(organizer&&event.status==='planning'?'<button type="button" class="finalize" data-finalize="'+esc(option.id)+'">Termin festlegen</button>':'')+'</div><details class="vote-people"><summary>Wer hat abgestimmt?</summary>'+Object.entries(dateLabels).map(([choice,label])=>'<p><b>'+label+':</b> '+(rows.filter(v=>v.choice===choice).map(v=>esc(nameFor(v.member_key))).join(', ')||'Noch niemand')+'</p>').join('')+'</details></div>';
+  const count=all.rows.find(r=>r.id===option.id);
+  const own=count?.own,closed=event.status!=='planning'||option.end_date<todayVienna();
+  const best=summary.best.some(r=>r.id===option.id);
+  const label=formatPeriod(option.start_date,option.end_date);
+  return '<article class="date-card comparison-row'+(best?' date-leading':'')+'"><div class="date-info">'+(best?'<span class="tag confirmed">'+(summary.best.length>1?'Gleichauf':'Bisher passendster Termin')+'</span>':'')+'<strong>'+esc(label)+'</strong><small>'+count.yes+' passt · '+count.maybe+' vielleicht · '+count.no+' geht nicht · '+count.pending+' offen</small><p class="own-date-answer">'+(closed?'Abstimmung geschlossen':own?'Deine Antwort: '+dateLabels[own]:'Deine Antwort fehlt noch')+'</p></div><div class="date-actions">'+Object.entries(dateLabels).map(([choice,text])=>'<button type="button" data-option="'+esc(option.id)+'" data-choice="'+choice+'" class="'+(own===choice?'selected '+choice:'')+'" '+(closed?'disabled':'')+' aria-pressed="'+(own===choice)+'" aria-label="'+esc(text+' · '+label)+'">'+text+'</button>').join('')+'</div><details class="vote-people"><summary>Wer kann mit?</summary>'+Object.entries(dateLabels).map(([choice,text])=>'<p><b>'+text+':</b> '+(rows.filter(v=>v.choice===choice).map(v=>esc(nameFor(v.member_key))).join(', ')||'Noch niemand')+'</p>').join('')+'</details>'+(organizer&&!closed?'<button type="button" class="quiet finalize" data-finalize="'+esc(option.id)+'">Diesen Termin festlegen</button>':'')+'</article>';
  }).join('');
+}
+function dateComparison(event,organizer){
+ const s=summarizeDates(options.filter(o=>o.event_id===event.id),votes,memberKey,people,todayVienna());
+ const leading=s.best.length===1?'Bisher passendster Termin: '+formatPeriod(s.best[0].start_date,s.best[0].end_date):s.best.length>1?s.best.length+' Termine liegen gleichauf.':'Noch kein Termin mit Zusagen.';
+ return '<div class="poll-progress"><strong>'+(s.rows.length?s.answered+' von '+s.rows.length+' Zeiträumen beantwortet':'Noch kein zukünftiger Zeitraum')+'</strong><p>'+esc(leading)+'</p><small>Die Markierung richtet sich nach Zusagen, dann nach weniger Absagen und mehr „Vielleicht“. Der Ersteller legt den Termin fest.</small></div><div class="comparison-list">'+dateCards(event,organizer)+'</div>';
 }
 function wireVotes(container) {
  wireVotingCalendars(container,()=>{if(document.body.dataset.page==='home')renderHome();else renderEvent();},()=>writeBusy);
@@ -144,7 +166,9 @@ async function voteDate(optionId,choice,button) {
  try {
   const r=await sb.from('group_date_votes').upsert({option_id:optionId,member_key:memberKey,choice},{onConflict:'option_id,member_key'}).select().single();
   if(r.error)throw r.error;await refresh();
- } catch(e){status('Stimme nicht gespeichert: '+e.message);}
+  status('Deine Antwort wurde gespeichert.','date-vote-status');
+  const target=[...($('date-comparison')?.querySelectorAll('[data-choice]')||[])].find(b=>b.dataset.option===optionId&&b.dataset.choice===choice);target?.focus({preventScroll:true});
+ } catch(e){status('Stimme nicht gespeichert: '+e.message,'date-vote-status');}
  finally{writeBusy=false;if(button.isConnected)button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
 }
 function renderEvent() {
@@ -160,14 +184,15 @@ function renderEvent() {
  $('travel-timeline').innerHTML=travelTimeline(event);
  $('event-photos').innerHTML=albumCard(event,organizer);
  $('event-plan-notice').innerHTML=event.status==='saved'?'<p class="planning-notice">Für später gespeichert. Eure Inhalte und bisherigen Stimmen bleiben erhalten; die Terminabstimmung pausiert.</p>':event.status==='planning'?'<p class="planning-notice">Termin noch offen. <a href="'+esc(eventUrl(event,'termine'))+'">Termine vorschlagen & abstimmen →</a></p>':'';
- $('overview-shortcuts').innerHTML='<a class="overview-link" href="'+esc(eventUrl(event,'programm'))+'"><strong>Programm & Ablauf</strong><span>'+programItems.length+' Ideen · Zeiten, Links und Abstimmung →</span></a><a class="overview-link" href="'+esc(eventUrl(event,'fotos'))+'"><strong>Gemeinsame Fotos</strong><span>'+(safeUrl(event.album_url)?'Fotoalbum öffnen':'Fotoalbum ergänzen')+' →</span></a>';
+ $('overview-shortcuts').innerHTML='<a class="overview-link" href="'+esc(eventUrl(event,'programm'))+'"><strong>Programm & Ablauf</strong><span>'+programItems.length+' Ideen · Zeiten, Links und Abstimmung →</span></a><a class="overview-link photo-shortcut" href="'+esc(eventUrl(event,'fotos'))+'"><strong>📷 Fotos & Erinnerungen</strong><span>'+(safeUrl(event.album_url)?'Fotoalbum öffnen':'Zur Fotoseite')+' →</span></a>';
  const view=activeView(location.search,location.hash,event);
  for(const [name,id] of Object.entries({uebersicht:'event-overview',programm:'event-program',termine:'event-dates-section',fotos:'event-photos'})) $(id).hidden=name!==view;
  document.querySelectorAll('[data-event-view]').forEach(link=>{const name=link.dataset.eventView;link.href=eventUrl(event,name);if(name===view)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
  $('date-nav').hidden=event.status!=='planning';
  if(view==='termine'&&event.status==='planning'){
+  $('date-comparison').innerHTML=dateComparison(event,organizer);wireVotes($('date-comparison'));
   $('event-dates').innerHTML=votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,organizer,id));wireVotes($('event-dates'));
- }else $('event-dates').replaceChildren();
+ }else {$('event-dates').replaceChildren();$('date-comparison').replaceChildren();}
  renderProgram(event);renderPeople(event);
  $('organizer-section').hidden=!organizer;$('edit-overview').hidden=!organizer;
  $('save-event-later').textContent=event.status==='saved'?'Wieder aktivieren':'Für später speichern';
@@ -481,7 +506,7 @@ installHubTools({
   $('event-dialog').showModal();$('event-title').focus();
  }:null
 });
-addEventListener('hashchange',()=>{if(document.body.dataset.page==='event'&&memberKey)renderEvent();});
+addEventListener('hashchange',()=>{if(document.body.dataset.page==='event'&&memberKey)renderEvent();else revealHomeSection();});
 init();
 
 

@@ -79,3 +79,24 @@ names; ordinary members edit their own profile. Do not grant admin roles through
 the browser or infer them from display names at runtime. Preserve votes and
 attendance when renaming, and reject stale admin edits. Admin management currently
 covers names and nicknames; it does not delete accounts or change trip participation.
+
+The hub prioritizes its next confirmed event, photos, then upcoming proposals
+with their date polls. Each proposal has one card with a direct voting link and
+a program/overview link. Avoid repeating it in a second event grid. Show a
+four-item, non-scrolling mobile navigation: Events, Termine, Fotos, Gruppe.
+Personal settings are reached through the user's name and gear. Members remain
+on the hub inside a collapsed details section; direct #mitglieder links open it.
+Hide the past-events section when empty. Keep archives compact.
+
+Date voting uses a direct comparison list with weekdays, own-answer progress,
+yes/maybe/no controls, and group counts. Calendar is an optional collapsed view
+on the same dates subpage. Highlight leaders only after a positive vote, preserve
+ties, and never confirm a date automatically. Ignore expired dates in progress
+and leaders. Only the organizer finalizes dates. No personal-calendar or birthday
+availability is implied by these member votes.
+
+Photos are a first-class navigation destination, a hero shortcut, and a prominent
+hub album area. Destination covers are labelled as title images, not as images
+retrieved from the private albums. All shared trips use the same photo view;
+Kufstein keeps /kufstein-2026/fotos.html and its existing iCloud link. Do not imply
+uploads or album synchronization. The album provider controls those permissions.
