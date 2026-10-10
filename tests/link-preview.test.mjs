@@ -9,3 +9,8 @@ assert.equal(parsed.images.length,2);assert.equal(parsed.images[0].url,'https://
 assert.equal(extractImages('<p>No photo</p>','https://example.org').images.length,0);
 assert.throws(()=>publicUrl('http://127.0.0.1/','https://example.org'));
 console.log('PASS: URL and IP guards, redirects, image candidates, HTML entities and empty preview');
+const {parseHttpResponse}=await import('../supabase/functions/program-link-preview/preview-core.mjs');
+assert.equal(parseHttpResponse(Buffer.from('HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n0\r\n\r\n')).html,'hello');
+assert.equal(parseHttpResponse(Buffer.from('HTTP/1.1 302 Found\r\nLocation: https://example.org/next\r\n\r\n')).redirect,'https://example.org/next');
+assert.throws(()=>parseHttpResponse(Buffer.from('HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nTransfer-Encoding: chunked\r\n\r\nfff\r\na')));
+console.log('PASS: bounded HTTP response and chunked body parsing');
