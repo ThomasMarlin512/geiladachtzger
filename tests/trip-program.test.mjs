@@ -41,3 +41,21 @@ assert.equal(programPhoto({image_url:'javascript:bad',image_source_url:'https://
 assert.equal(programPhoto({image_url:'https://example.com/p.jpg',image_source_url:'https://example.com',image_credit:'Hotel'}).credit,'Hotel');
 assert.equal(programPhoto({image_url:'',image_source_url:''}),null);
 console.log('PASS: times across midnight, schedule order, stored photos and photo removal');
+const {programConflicts}=await import('data:text/javascript;base64,'+Buffer.from(moduleSource).toString('base64'));
+const itineraryItems=[
+{id:'late',title:'Abend',description:'<script>unsafe</script>',day_number:1,start_time:'18:00',end_time:'19:00'},
+{id:'early',title:'Früh',description:'Treffpunkt am Hotel',day_number:1,start_time:'09:00',end_time:'10:30'},
+{id:'overlap',title:'Alternative',description:'Andere Idee',day_number:1,start_time:'10:00',end_time:'11:00'},
+{id:'open',title:'Offen',description:'',day_number:null}
+];
+const itinerary=programTimeline(itineraryItems,{start_date:'2027-09-02'});
+assert.ok(itinerary.indexOf('>Früh</a>')<itinerary.indexOf('>Abend</a>'));
+assert.ok(itinerary.includes('Treffpunkt am Hotel'));
+assert.ok(itinerary.includes('09:00–10:30'));
+assert.ok(itinerary.includes('Uhrzeit noch offen'));
+assert.ok(!itinerary.includes('<script>unsafe</script>'));
+assert.ok(itinerary.includes('data-program-media="early"'));
+assert.deepEqual([...programConflicts(itineraryItems)].sort(),['early','overlap']);
+assert.equal(programConflicts([{id:'a',day_number:1,start_time:'09:00',end_time:'10:00'},{id:'b',day_number:1,start_time:'10:00',end_time:'11:00'}]).size,0);
+assert.equal(programConflicts([{id:'a',day_number:1,start_time:'23:00',end_time:'01:00',ends_next_day:true},{id:'b',day_number:2,start_time:'00:30',end_time:'02:00'}]).size,2);
+console.log('PASS: automatic itinerary sorts, includes descriptions and edit actions, keeps open times and flags real overlaps');
