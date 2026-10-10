@@ -1,5 +1,6 @@
 import {installHubTools} from './webmcp-tools.js';
 import {fail} from './webmcp-core.js';
+import {votingCalendar,wireVotingCalendars} from './voting-calendar.js?v=20261010-1';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const URL = 'https://rzzipqdozabuxrmoxhlw.supabase.co';
@@ -97,11 +98,11 @@ function renderHome() {
  $('past-list').innerHTML=previous.map(e=>eventCard(e,true)).join('')||'<div class="empty">Nach unseren Veranstaltungen findet ihr hier die Rückblicke.</div>';
  $('next-event').innerHTML=next?'<div class="next-event"><div><p class="eyebrow">ALS NÄCHSTES</p><h2>'+esc(next.title)+'</h2><p>'+esc(dateRange(next.start_date,next.end_date))+' · '+esc(next.location)+'</p></div><a class="button" href="'+esc(eventWebsiteUrl(next))+'">Zum Ausflug →</a></div>':'';
  const planning=coming.filter(e=>e.status==='planning');
- $('planning-list').innerHTML=planning.map(event=>'<article class="planning-event"><h3><a href="'+detailUrl(event)+'">'+esc(event.title)+' →</a></h3><div class="date-rows">'+dateCards(event,false)+'</div></article>').join('')||'<div class="empty">Noch keine offenen Terminabstimmungen. Schlagt eure nächste Reise oder ein Treffen vor.</div>';
+ $('planning-list').innerHTML=planning.map(event=>'<article class="planning-event"><h3><a href="'+detailUrl(event)+'">'+esc(event.title)+' →</a></h3>'+votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,false,id))+'</article>').join('')||'<div class="empty">Noch keine offenen Terminabstimmungen. Schlagt eure nächste Reise oder ein Treffen vor.</div>';
  wireVotes($('planning-list'));
 }
-function dateCards(event,organizer) {
- const dates=options.filter(o=>o.event_id===event.id);
+function dateCards(event,organizer,selectedId=null) {
+ const dates=options.filter(o=>o.event_id===event.id&&(!selectedId||o.id===selectedId));
  if(!dates.length)return '<div class="empty">Noch keine Terminvorschläge.</div>';
  return dates.map(option=>{
   const rows=votes.filter(v=>v.option_id===option.id);
@@ -112,6 +113,7 @@ function dateCards(event,organizer) {
  }).join('');
 }
 function wireVotes(container) {
+ wireVotingCalendars(container,()=>{if(document.body.dataset.page==='home')renderHome();else renderEvent();},()=>writeBusy);
  container.querySelectorAll('[data-choice]').forEach(button=>button.addEventListener('click',()=>voteDate(button.dataset.option,button.dataset.choice,button)));
  container.querySelectorAll('[data-finalize]').forEach(button=>button.addEventListener('click',()=>finalize(button.dataset.finalize,button)));
 }
@@ -131,7 +133,7 @@ function renderEvent() {
  const url=safeUrl(event.website_url);
  $('event-detail').innerHTML='<section class="event-detail"><span class="tag '+event.status+'">'+(past(event)?'Rückblick':stateLabels[event.status])+'</span><h1 class="event-title">'+esc(event.title)+'</h1><div class="event-meta"><span>▦ '+esc(dateRange(event.start_date,event.end_date))+'</span><span>⌖ '+esc(event.location||'Ort noch offen')+'</span></div>'+(event.description?'<p class="event-description">'+esc(event.description)+'</p>':'')+(url?'<a class="button" href="'+esc(url)+'">Zur eigenen Veranstaltungswebseite →</a>':'')+'</section>';
  $('event-dates-section').hidden=event.status!=='planning';
- $('event-dates').innerHTML=dateCards(event,organizer);wireVotes($('event-dates'));
+ $('event-dates').innerHTML=votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,organizer,id));wireVotes($('event-dates'));
  renderPeople(event);
  $('organizer-section').hidden=!organizer;
  if(organizer&&!document.activeElement?.closest('#organizer-section')){
@@ -255,4 +257,5 @@ installHubTools({
  }:null
 });
 init();
+
 
