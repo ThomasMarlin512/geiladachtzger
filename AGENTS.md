@@ -16,7 +16,7 @@ Every program item supports multiple source links, optional trip day,
 start/end times (including an explicit next-day end), and a selectable
 photo with a source link and credit. Store destination content and photos
 in Supabase; do not hardcode destination-specific photo maps in the template.
-Members can add ideas and links and edit the specifically permitted time
+Members can add ideas and links and edit the specifically permitted description, time
 and photo fields. Preserve the existing row and column permissions.
 
 Photo suggestions are fetched through the authenticated program-link-preview
@@ -28,3 +28,8 @@ leave the direct image URL option usable; photos are only applied on Save.
 Keep the layout usable on phones. Escape user content and allow only HTTPS
 URLs without credentials. Preserve member votes when changing content.
 Run the relevant tests in tests/ for template, time, image and preview changes.
+
+Generate the itinerary directly from current program records on every refresh.
+Sort by trip day and start time, display descriptions and from/to times, and
+provide editing from both the activity card and itinerary. Keep missing times
+explicitly open; do not invent a confirmed schedule or treat votes as bookings.
