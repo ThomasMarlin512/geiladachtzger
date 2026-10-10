@@ -105,11 +105,12 @@ function renderHome() {
  const previous=events.filter(past).sort((a,b)=>b.start_date.localeCompare(a.start_date));
  const saved=events.filter(e=>e.status==='saved');
  const next=coming.find(e=>e.status==='confirmed');
- $('event-list').innerHTML=coming.map(e=>eventCard(e)).join('')||'<div class="empty">Noch keine Veranstaltungen geplant.</div>';
+ $('event-list').innerHTML=coming.filter(e=>e.id!==next?.id).map(e=>eventCard(e)).join('')||'<div class="empty">'+(next?'Noch keine weiteren Veranstaltungen geplant.':'Noch keine Veranstaltungen geplant.')+'</div>';
+ $('hub-hero').classList.toggle('has-next',Boolean(next));
  $('saved-list').innerHTML=saved.map(e=>eventCard(e)).join('')||'<div class="empty">Noch keine Ideen für später gespeichert.</div>';
  $('past-list').innerHTML=previous.map(e=>eventCard(e,true)).join('')||'<div class="empty">Nach unseren Veranstaltungen findet ihr hier die Rückblicke.</div>';
  $('next-event').innerHTML=next?'<div class="next-event"><div><p class="eyebrow">ALS NÄCHSTES</p><h2>'+esc(next.title)+'</h2><p>'+esc(dateRange(next.start_date,next.end_date))+' · '+esc(next.location)+'</p></div><a class="button" href="'+esc(eventWebsiteUrl(next))+'">Zum Ausflug →</a></div>':'';
- const cover=(next&&eventCover(next,programItems))||coming.map(e=>eventCover(e,programItems)).find(Boolean);
+ const cover=next?eventCover(next,programItems):null;
  $('hub-hero-photo').innerHTML=cover?'<img class="hub-background" src="'+esc(cover.image)+'" alt=""><a class="hub-credit" href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(cover.credit)+'</a>':'';
  wireEventImages();
 }

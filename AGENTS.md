@@ -49,3 +49,7 @@ Generate the itinerary directly from current program records on every refresh.
 Sort by trip day and start time, display descriptions and from/to times, and
 provide editing from both the activity card and itinerary. Keep missing times
 explicitly open; do not invent a confirmed schedule or treat votes as bookings.
+
+On the hub, show the next confirmed event once in the hero and exclude it from
+the cards below. The hero may only use that event's cover or program photo,
+never a fallback image from another destination. Keep the mobile header compact.
