@@ -1,14 +1,14 @@
 import {installHubTools} from './webmcp-tools.js';
 import {fail} from './webmcp-core.js';
 import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=20261010-2';
-import {programCards,programTimeline,httpsUrl,activityPhotos} from './trip-program.js?v=20261010-1';
+import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram} from './trip-program.js?v=20261010-2';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const URL = 'https://rzzipqdozabuxrmoxhlw.supabase.co';
 const KEY = 'sb_publishable_4MsQNsSWj2VXmONSNim-zg__T2QeLV0';
 let sb, user, member, memberKey, busy = false, refreshBusy = false, timer;
 let events = [], options = [], votes = [], attendance = [], people = [], directory = [];
-let programItems=[],programVotes=[],programLinks=[],linkItemId=null;
+let programItems=[],programVotes=[],programLinks=[],linkItemId=null,mediaItemId=null,previewBusy=false;
 let createdDraftId = null, writeBusy = false;
 const currentEventId = new URLSearchParams(location.search).get('id');
 const labels = {yes:'✓ Dabei', maybe:'? Unsicher', no:'✕ Nicht dabei'};
@@ -87,6 +87,7 @@ async function refresh() {
   ]);
   const bad=results.find(r=>r.error);if(bad)throw bad.error;
   [events,options,votes,attendance,people,directory,programItems,programVotes,programLinks]=results.map(r=>r.data||[]);
+  programItems=sortProgram(programItems);
   status('');
   if(document.body.dataset.page==='home')renderHome();else renderEvent();
  } catch(e) {status('Aktualisierung fehlgeschlagen: '+(e.message||String(e)));}
@@ -136,7 +137,7 @@ function renderEvent() {
  document.title=event.title+' · Geiladachtzger';
  const organizer=event.created_by_key===memberKey;
  const url=safeUrl(event.website_url);
- const heroPhoto=programItems.map(item=>activityPhotos[httpsUrl(item.website_url)]).find(Boolean);
+ const heroPhoto=programItems.map(item=>programPhoto(item)).find(Boolean);
  $('event-detail').innerHTML='<header class="trip-hero">'+(heroPhoto?'<img class="trip-hero-photo" src="'+esc(heroPhoto.image)+'" alt="" aria-hidden="true">':'')+'<div class="trip-hero-content"><img class="trip-wordmark" src="assets/geiladachtzger-logo.webp" alt="Geiladachtzger"><p class="eyebrow">GUTE FREUNDE · SCHÖNE ERLEBNISSE</p><span class="tag '+event.status+'">'+(past(event)?'Rückblick':stateLabels[event.status])+'</span><h1 class="event-title">'+esc(event.title)+'</h1><p>'+esc(dateRange(event.start_date,event.end_date))+' · '+esc(event.location||'Ort noch offen')+'</p></div></header><div class="trip-feature-strip"><span>✦ Gemeinsam unterwegs</span><span>▦ '+programItems.length+' Programmideen</span><span>♧ '+people.length+' Gruppenmitglieder</span></div>';
  $('trip-information').innerHTML='<h3>'+esc(event.location||'Ort noch offen')+'</h3>'+(event.description?'<p class="event-description">'+esc(event.description)+'</p>':'<p>Weitere Informationen zu Unterkunft und Anreise können als Programmpunkte vorgeschlagen werden.</p>')+(url?'<p><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Weitere Reiseinfos ↗</a></p>':'');
  $('event-dates-section').hidden=event.status!=='planning';
@@ -206,6 +207,12 @@ function wireForms() {
  $('close-program-link')?.addEventListener('click',()=>$('program-link-dialog').close());
  $('program-form')?.addEventListener('submit',addProgram);
  $('program-link-form')?.addEventListener('submit',addProgramLink);
+ $('program-media-form')?.addEventListener('submit',saveProgramMedia);
+ $('close-program-media')?.addEventListener('click',()=>{if(!previewBusy)$('program-media-dialog').close();});
+ $('load-program-photos')?.addEventListener('click',loadProgramPhotos);
+ $('media-image')?.addEventListener('input',updateMediaPreview);
+ $('clear-program-photo')?.addEventListener('click',()=>{$('media-image').value='';updateMediaPreview();});
+ $('program-media-dialog')?.addEventListener('cancel',e=>{if(previewBusy||writeBusy)e.preventDefault();});
  $('extra-start')?.addEventListener('change',()=>{const start=$('extra-start').value;$('extra-end').min=start||todayVienna();if(start&&(!$('extra-end').value||$('extra-end').value<start))$('extra-end').value=start;});
 }
 async function createEvent(e) {
@@ -270,6 +277,8 @@ function renderProgram(event) {
  container.innerHTML=programCards(programItems,programVotes,programLinks,event,memberKey,nameFor,people.length);
  container.querySelectorAll('[data-program-detail]').forEach(el=>{el.open=opened.has(el.dataset.programDetail);});
  $('program-timeline').innerHTML=programTimeline(programItems,event);
+ container.querySelectorAll('img.program-photo').forEach(img=>img.addEventListener('error',()=>{img.hidden=true;}));
+ container.querySelectorAll('[data-program-media]').forEach(button=>button.addEventListener('click',()=>openProgramMedia(button.dataset.programMedia)));
  container.querySelectorAll('[data-program-vote]').forEach(button=>button.addEventListener('click',()=>voteProgram(button)));
  container.querySelectorAll('[data-program-link]').forEach(button=>button.addEventListener('click',()=>{
   if(writeBusy)return;
@@ -284,8 +293,9 @@ async function addProgram(e) {
  try {
   const raw=$('program-url').value.trim(),url=raw?httpsUrl(raw):'';
   if(raw&&!url)throw Error('Bitte eine gültige https://-Adresse ohne Zugangsdaten eingeben.');
+  const times=readProgramTimes('program');
   const day=$('program-day').value?Number($('program-day').value):null;
-  const result=await sb.from('group_program_items').insert({event_id:currentEventId,title:$('program-title').value.trim(),description:$('program-description').value.trim(),category:$('program-category').value,day_number:day,time_label:$('program-time').value.trim(),cost_label:$('program-cost').value.trim(),website_url:url,created_by_key:memberKey}).select().single();
+  const result=await sb.from('group_program_items').insert({event_id:currentEventId,title:$('program-title').value.trim(),description:$('program-description').value.trim(),category:$('program-category').value,day_number:day,...times,time_label:$('program-time').value.trim(),cost_label:$('program-cost').value.trim(),website_url:url,created_by_key:memberKey}).select().single();
   if(result.error)throw result.error;
   $('program-dialog').close();await refresh();status('Programmvorschlag gespeichert. Alle können abstimmen.','program-status');
   document.getElementById('program-'+result.data.id)?.scrollIntoView({behavior:'smooth',block:'center'});
@@ -315,6 +325,70 @@ async function addProgramLink(e) {
   if(result.error){if(result.error.code==='23505')throw Error('Dieser Link ist bereits vorhanden.');throw result.error;}
   $('program-link-dialog').close();await refresh();status('Link ergänzt.','program-status');
  }catch(error){status('Nicht gespeichert: '+error.message,'program-link-status');}
+ finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
+}
+
+function readProgramTimes(prefix) {
+ const start_time=$(prefix+'-start').value||null,end_time=$(prefix+'-end').value||null,ends_next_day=$(prefix+'-next-day').checked;
+ if(end_time&&!start_time)throw Error('Bitte auch eine Beginnzeit eingeben.');
+ if(start_time&&end_time&&end_time<start_time&&!ends_next_day)throw Error('Ende liegt vor Beginn. Bei einem Termin über Mitternacht „Ende am nächsten Tag“ wählen.');
+ return {start_time,end_time,ends_next_day};
+}
+function updateMediaPreview() {
+ const url=httpsUrl($('media-image').value.trim()),image=$('media-selected-image');
+ image.hidden=!url;if(url){image.src=url;image.onerror=()=>{image.hidden=true;status('Das Bild kann nicht geladen werden. Bitte eine andere Bildadresse wählen.','media-preview-status');};}else image.removeAttribute('src');
+}
+function openProgramMedia(id) {
+ if(writeBusy||previewBusy)return;
+ const item=programItems.find(i=>i.id===id);if(!item)return;mediaItemId=id;
+ $('program-media-form').reset();$('program-media-item').textContent=item.title;
+ $('media-day').value=item.day_number||'';$('media-hint').value=item.time_label;
+ $('media-start').value=item.start_time?.slice(0,5)||'';$('media-end').value=item.end_time?.slice(0,5)||'';$('media-next-day').checked=item.ends_next_day;
+ const photo=programPhoto(item);
+ $('media-source').value=item.image_source_url||item.website_url||programLinks.find(l=>l.item_id===id)?.url||'';
+ $('media-image').value=photo?.image||'';$('media-credit').value=photo?.credit||'';
+ $('media-source-links').innerHTML=[...new Set([item.website_url,...programLinks.filter(l=>l.item_id===id).map(l=>l.url)].filter(Boolean))].map(url=>'<option value="'+esc(url)+'"></option>').join('');
+ $('media-candidates').replaceChildren();status('','media-preview-status');status('','program-media-status');
+ updateMediaPreview();$('program-media-dialog').showModal();
+}
+async function loadProgramPhotos() {
+ if(previewBusy||writeBusy)return;
+ const url=httpsUrl($('media-source').value.trim());
+ if(!url){status('Bitte einen gültigen https://-Link eingeben.','media-preview-status');return;}
+ previewBusy=true;$('load-program-photos').disabled=true;
+ $('program-media-form').querySelector('[type=submit]').disabled=true;
+ status('Fotos werden gesucht …','media-preview-status');$('media-candidates').replaceChildren();
+ try {
+  const result=await sb.functions.invoke('program-link-preview',{body:{url}});
+  if(result.error){let message='Die Webseite konnte nicht gelesen werden. Du kannst eine direkte Bildadresse verwenden.';try{const body=await result.error.context.json();if(body.error)message=body.error;}catch{}throw Error(message);}
+  if(result.data.error)throw Error(result.data.error);
+  const images=(result.data.images||[]).filter(i=>httpsUrl(i.url));
+  if(!images.length){status('Kein passendes Foto gefunden. Eine direkte Bildadresse ist weiterhin möglich.','media-preview-status');return;}
+  $('media-source').value=result.data.source_url;
+  $('media-candidates').innerHTML=images.map((image,index)=>'<button type="button" class="media-candidate" data-photo-index="'+index+'" aria-label="Foto '+(index+1)+' auswählen"><img src="'+esc(image.url)+'" alt="Bildvorschlag '+(index+1)+'" loading="lazy"><span>'+esc(image.kind)+' '+(index+1)+'</span></button>').join('');
+  $('media-candidates').querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>{
+   $('media-image').value=images[Number(button.dataset.photoIndex)].url;
+   $('media-credit').value=new globalThis.URL(result.data.source_url).hostname;
+   $('media-candidates').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+   updateMediaPreview();
+  }));
+  $('media-candidates').querySelectorAll('img').forEach(img=>img.addEventListener('error',()=>{img.closest('button').hidden=true;}));
+  status('Wähle ein Foto aus. Übernommen wird es erst beim Speichern.','media-preview-status');
+ }catch(error){status(error.message,'media-preview-status');}
+ finally{previewBusy=false;$('load-program-photos').disabled=false;$('program-media-form').querySelector('[type=submit]').disabled=false;}
+}
+async function saveProgramMedia(e) {
+ e.preventDefault();if(writeBusy||previewBusy)return;writeBusy=true;
+ const button=e.target.querySelector('[type=submit]');button.disabled=true;
+ try {
+  const times=readProgramTimes('media'),rawImage=$('media-image').value.trim(),rawSource=$('media-source').value.trim();
+  const image_url=rawImage?httpsUrl(rawImage):'',image_source_url=rawSource?httpsUrl(rawSource):'';
+  if(rawImage&&!image_url)throw Error('Bitte eine gültige HTTPS-Bildadresse eingeben.');
+  if(image_url&&!image_source_url)throw Error('Bitte den Quellenlink zum Foto angeben.');
+  const result=await sb.from('group_program_items').update({...times,day_number:$('media-day').value?Number($('media-day').value):null,time_label:$('media-hint').value.trim(),image_url,image_source_url:image_url?image_source_url:'',image_credit:image_url?$('media-credit').value.trim():''}).eq('id',mediaItemId).select().single();
+  if(result.error)throw result.error;
+  $('program-media-dialog').close();await refresh();status('Uhrzeit und Foto gespeichert.','program-status');
+ }catch(error){status('Nicht gespeichert: '+error.message,'program-media-status');}
  finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
 }
 installHubTools({
