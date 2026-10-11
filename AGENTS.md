@@ -210,7 +210,6 @@ range. Preserve an old out-of-range value visibly until the user corrects it.
 Allow unknown times; an end requires a start and explicit next-day endings must
 stay inside the trip. The full program editor includes title, primary link and
 description and saves fields atomically through save_event_content_fields with
-original values. Do not enable the new full-form save until migration
-20261011212043_activity_fields_and_trip_day_selection.sql is applied. Its production
-application was blocked by automatic approval review and awaits explicit user
-approval. Do not bypass this gate with direct SQL or deploy the dependent UI early.
+original values. Migration 20261011213229_activity_fields_and_trip_day_selection.sql
+was approved by the user, applied, and checked with rolled-back owner/admin
+fixtures, including direct member inserts and out-of-range trip-day rejection.

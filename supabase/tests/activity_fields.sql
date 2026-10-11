@@ -13,6 +13,14 @@ begin
  insert into public.group_program_items(id,event_id,title,created_by_key) values(item_id,event_key,'Original',owner_id::text);
  insert into public.trip_activity_details(activity_id,title) values(legacy_id,'Fixture original');
  insert into public.trip_text_content(site_id,content_key,content) values('kufstein-2026','activity-'||legacy_id||'-description',null);
+ -- Exercise member INSERT/UPDATE triggers through the actual browser role too.
+ insert into public.group_events(id,title,created_by_key) values(event_key||'-planning','Planning fixture',owner_id::text);
+ insert into public.group_event_dates(event_id,start_date,end_date) values(event_key||'-planning','2027-09-02','2027-09-05');
+ perform set_config('request.jwt.claim.sub',owner_id::text,true);perform set_config('role','authenticated',true);
+ insert into public.group_program_items(event_id,title,created_by_key,day_number,start_time,end_time) values(event_key||'-planning','Member-added idea',owner_id::text,4,'09:00','10:00');
+ blocked:=false;begin update public.group_program_items set day_number=5 where event_id=event_key||'-planning';exception when raise_exception then blocked:=true;end;
+ if not blocked then raise exception 'Direct member write accepted invalid proposed trip day';end if;
+ perform set_config('role','postgres',true);
  select to_jsonb(i) into original from public.group_program_items i where id=item_id;
  perform set_config('request.jwt.claim.sub',owner_id::text,true);perform set_config('role','authenticated',true);
  saved:=public.save_event_content_fields('program',item_id::text,'{"title":"Changed","website_url":"https://example.invalid/","description":"Test description","day_number":1,"start_time":"23:00","end_time":"01:00","ends_next_day":true,"image_url":"https://example.invalid/photo.jpg","image_source_url":"https://example.invalid/","image_credit":"Fixture"}',original);
