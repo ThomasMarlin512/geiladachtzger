@@ -1,7 +1,8 @@
+import {fillTripDaySelect,validateActivitySchedule} from './activity-schedule.js?v=activity-fields-20261011-1';
 import {mountDateRangePicker,describeRange} from './date-range-picker.js?v=calendar-ux-20261011-1';
 import {replaceKeepingOpenDetails} from './view-state.js?v=unified-20261011-2';
 import {wireImageFallbacks} from './image-fallback.js?v=mobile-20261011-1';
-import {createEventFieldEditor} from './event-field-editor.js?v=calendar-ux-20261011-1';
+import {createEventFieldEditor} from './event-field-editor.js?v=activity-fields-20261011-1';
 import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=compact-20261011-1';
 import {createMemberDirectory} from './member-directory.js?v=compact-20261011-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
@@ -17,7 +18,7 @@ let sb, user, member, memberKey, busy = false, refreshBusy = false, timer;
 let events = [], options = [], votes = [], attendance = [], people = [], directory = [];
 let programItems=[],programVotes=[],programLinks=[],linkItemId=null,mediaItemId=null,previewBusy=false;
 const removedProgramIds=new Set();
-let deletingProgram=null;
+let deletingProgram=null,mediaOriginal=null;
 let createdDraftId = null, writeBusy = false, canManageTexts = false, fieldEditor = null, extraDatePicker = null, newDatePicker = null;
 const membersUi=createMemberDirectory({client:()=>sb,onIdentity:nickname=>{if(member){member.display_name=nickname;$('member-name').textContent=nickname;}},onSaved:()=>refresh()});
 const currentEventId = new URLSearchParams(location.search).get('id');
@@ -280,7 +281,7 @@ function wireForms() {
   $('event-dates-section').dataset.dateView=button.dataset.dateView;
   document.querySelectorAll('button[data-date-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
  }));
- if(currentEventId)fieldEditor=createEventFieldEditor({client:()=>sb,canEnterEditMode:()=>canManageTexts||events.some(e=>e.id===currentEventId&&e.created_by_key===memberKey)||programItems.some(i=>i.event_id===currentEventId&&canEditProgram(i,memberKey,canManageTexts)),canEdit:(kind,id)=>kind==='program'?canEditProgram(programItems.find(i=>i.id===id),memberKey,canManageTexts):canManageTexts,event:()=>events.find(e=>e.id===currentEventId),items:()=>programItems,onBusy:value=>{writeBusy=value;if(!value&&$('own-attendance'))$('own-attendance').disabled=false;},onSaved:async(kind,row)=>{if(kind==='event')events=events.map(e=>e.id===row.id?row:e);else programItems=sortProgram(programItems.map(i=>i.id===row.id?row:i));renderEvent();status('Gespeichert – für alle sichtbar.');}});
+ if(currentEventId)fieldEditor=createEventFieldEditor({client:()=>sb,proposals:()=>options,canEnterEditMode:()=>canManageTexts||events.some(e=>e.id===currentEventId&&e.created_by_key===memberKey)||programItems.some(i=>i.event_id===currentEventId&&canEditProgram(i,memberKey,canManageTexts)),canEdit:(kind,id)=>kind==='program'?canEditProgram(programItems.find(i=>i.id===id),memberKey,canManageTexts):canManageTexts,event:()=>events.find(e=>e.id===currentEventId),items:()=>programItems,onBusy:value=>{writeBusy=value;if(!value&&$('own-attendance'))$('own-attendance').disabled=false;},onSaved:async(kind,row)=>{if(kind==='event')events=events.map(e=>e.id===row.id?row:e);else programItems=sortProgram(programItems.map(i=>i.id===row.id?row:i));renderEvent();status('Gespeichert – für alle sichtbar.');}});
  $('new-event-button')?.addEventListener('click',()=>{
   if(!createdDraftId){$('new-event-form').reset();$('new-date-options').innerHTML='';newDatePicker?.reset();status('','new-date-feedback');status('','create-status');}
   $('event-dialog').showModal();
@@ -298,7 +299,7 @@ function wireForms() {
  $('delete-event-form')?.addEventListener('submit',deleteEvent);
  $('cover-from-program')?.addEventListener('change',e=>{const photo=programItems.find(i=>i.id===e.target.value);const cover=photo&&programPhoto(photo);if(cover){$('edit-cover_image_url').value=cover.image;$('edit-cover_source_url').value=cover.source;$('edit-cover_credit').value=cover.credit;}});
  $('add-option-form')?.addEventListener('submit',addOption);
- $('propose-program')?.addEventListener('click',()=>{if(writeBusy)return;$('program-form').reset();status('','program-form-status');$('program-dialog').showModal();$('program-title').focus();});
+ $('propose-program')?.addEventListener('click',()=>{if(writeBusy)return;$('program-form').reset();$('program-day-hint').textContent=fillTripDaySelect($('program-day'),events.find(e=>e.id===currentEventId),options);status('','program-form-status');$('program-dialog').showModal();$('program-title').focus();});
  $('close-program')?.addEventListener('click',()=>$('program-dialog').close());
  $('close-program-link')?.addEventListener('click',()=>$('program-link-dialog').close());
  $('program-form')?.addEventListener('submit',addProgram);
@@ -307,7 +308,7 @@ function wireForms() {
  $('program-delete-form')?.addEventListener('submit',deleteProgram);
  $('cancel-program-delete')?.addEventListener('click',()=>{if(!writeBusy)$('program-delete-dialog').close();});
  $('program-delete-dialog')?.addEventListener('cancel',e=>{if(writeBusy)e.preventDefault();});
- $('close-program-media')?.addEventListener('click',()=>{if(!previewBusy)$('program-media-dialog').close();});
+ $('close-program-media')?.addEventListener('click',()=>{if(!previewBusy&&!writeBusy)$('program-media-dialog').close();});
  $('load-program-photos')?.addEventListener('click',loadProgramPhotos);
  $('media-image')?.addEventListener('input',updateMediaPreview);
  $('clear-program-photo')?.addEventListener('click',()=>{$('media-image').value='';updateMediaPreview();});
@@ -453,7 +454,7 @@ async function addProgram(e) {
   const raw=$('program-url').value.trim(),url=raw?httpsUrl(raw):'';
   if(raw&&!url)throw Error('Bitte eine gültige https://-Adresse ohne Zugangsdaten eingeben.');
   const times=readProgramTimes('program');
-  const day=$('program-day').value?Number($('program-day').value):null;
+  const day=times.day_number;
   const result=await sb.from('group_program_items').insert({event_id:currentEventId,title:$('program-title').value.trim(),description:$('program-description').value.trim(),category:$('program-category').value,day_number:day,...times,time_label:$('program-time').value.trim(),cost_label:$('program-cost').value.trim(),website_url:url,created_by_key:memberKey}).select().single();
   if(result.error)throw result.error;
   $('program-dialog').close();await refresh();status('Programmvorschlag gespeichert. Alle können abstimmen.','program-status');
@@ -488,10 +489,7 @@ async function addProgramLink(e) {
 }
 
 function readProgramTimes(prefix) {
- const start_time=$(prefix+'-start').value||null,end_time=$(prefix+'-end').value||null,ends_next_day=$(prefix+'-next-day').checked;
- if(end_time&&!start_time)throw Error('Bitte auch eine Beginnzeit eingeben.');
- if(start_time&&end_time&&end_time<start_time&&!ends_next_day)throw Error('Ende liegt vor Beginn. Bei einem Termin über Mitternacht „Ende am nächsten Tag“ wählen.');
- return {start_time,end_time,ends_next_day};
+ return validateActivitySchedule({day_number:$(prefix+'-day').value,start_time:$(prefix+'-start').value,end_time:$(prefix+'-end').value,ends_next_day:$(prefix+'-next-day').checked},events.find(e=>e.id===currentEventId),options);
 }
 function updateMediaPreview() {
  const url=httpsUrl($('media-image').value.trim()),image=$('media-selected-image');
@@ -499,11 +497,12 @@ function updateMediaPreview() {
 }
 function openProgramMedia(id) {
  if(writeBusy||previewBusy)return;
- const item=programItems.find(i=>i.id===id);if(!canEditProgram(item,memberKey,canManageTexts))return;mediaItemId=id;
+ const item=programItems.find(i=>i.id===id);if(!canEditProgram(item,memberKey,canManageTexts))return;mediaItemId=id;mediaOriginal={...item};
  $('program-media-form').reset();$('program-media-item').textContent=item.title;
+ $('media-title').value=item.title||'';$('media-url').value=item.website_url||'';
  $('media-description').value=item.description||'';
  $('media-plan-status').value=item.plan_status||'idea';
- $('media-day').value=item.day_number||'';$('media-hint').value=item.time_label;
+ $('media-day-hint').textContent=fillTripDaySelect($('media-day'),events.find(e=>e.id===currentEventId),options,item.day_number);$('media-hint').value=item.time_label;
  $('media-start').value=item.start_time?.slice(0,5)||'';$('media-end').value=item.end_time?.slice(0,5)||'';$('media-next-day').checked=item.ends_next_day;
  const photo=programPhoto(item);
  $('media-source').value=item.image_source_url||item.website_url||programLinks.find(l=>l.item_id===id)?.url||'';
@@ -540,18 +539,23 @@ async function loadProgramPhotos() {
 }
 async function saveProgramMedia(e) {
  e.preventDefault();if(writeBusy||previewBusy)return;writeBusy=true;
- const button=e.target.querySelector('[type=submit]');button.disabled=true;
+ const controls=$('program-media-dialog').querySelectorAll('input,select,textarea,button');controls.forEach(control=>control.disabled=true);
  try {
   if(!canEditProgram(programItems.find(i=>i.id===mediaItemId),memberKey,canManageTexts))throw Error('Nur der Ersteller und die Gruppenverwaltung dürfen diesen Programmpunkt bearbeiten.');
   const times=readProgramTimes('media'),rawImage=$('media-image').value.trim(),rawSource=$('media-source').value.trim();
   const image_url=rawImage?httpsUrl(rawImage):'',image_source_url=rawSource?httpsUrl(rawSource):'';
   if(rawImage&&!image_url)throw Error('Bitte eine gültige HTTPS-Bildadresse eingeben.');
   if(image_url&&!image_source_url)throw Error('Bitte den Quellenlink zum Foto angeben.');
-  const result=await sb.from('group_program_items').update({...times,plan_status:$('media-plan-status').value,description:$('media-description').value.trim(),day_number:$('media-day').value?Number($('media-day').value):null,time_label:$('media-hint').value.trim(),image_url,image_source_url:image_url?image_source_url:'',image_credit:image_url?$('media-credit').value.trim():''}).eq('id',mediaItemId).select().single();
+  const title=$('media-title').value.trim(),rawUrl=$('media-url').value.trim(),website_url=rawUrl?httpsUrl(rawUrl):'';
+  if(title.length<2||title.length>100)throw Error('Der Titel muss 2 bis 100 Zeichen lang sein.');
+  if(rawUrl&&!website_url)throw Error('Bitte einen gültigen HTTPS-Link ohne Zugangsdaten eingeben.');
+  const patch={...times,title,website_url,plan_status:$('media-plan-status').value,description:$('media-description').value.trim(),time_label:$('media-hint').value.trim(),image_url,image_source_url:image_url?image_source_url:'',image_credit:image_url?$('media-credit').value.trim():''};
+  const expected=Object.fromEntries(Object.keys(patch).map(key=>[key,mediaOriginal[key]??null]));
+  const result=await sb.rpc('save_event_content_fields',{p_kind:'program',p_id:mediaItemId,p_patch:patch,p_expected:expected});
   if(result.error)throw result.error;
   $('program-media-dialog').close();await refresh();status('Programmpunkt gespeichert. Der Ablauf wurde automatisch aktualisiert.','program-status');
  }catch(error){status('Nicht gespeichert: '+error.message,'program-media-status');}
- finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
+ finally{writeBusy=false;controls.forEach(control=>control.disabled=false);if($('own-attendance'))$('own-attendance').disabled=false;}
 }
 installHubTools({
  client:()=>sb,userId:()=>user?.id,ready:()=>Boolean(memberKey && !$('app').hidden),

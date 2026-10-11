@@ -1,3 +1,4 @@
+import {fillTripDaySelect,validateActivitySchedule} from './activity-schedule.js?v=activity-fields-20261011-1';
 const text=(label,max=1000)=>({label,max,type:'textarea'});
 const link=label=>({label,max:2048,type:'url'});
 export const eventFieldSpecs={
@@ -32,7 +33,7 @@ export function fieldPatch(kind,field,values){
  return patch;
 }
 const pencil='<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="m15 5 4 4M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-export function createEventFieldEditor({client,canEdit,event,items,onSaved,onBusy,canEnterEditMode}){
+export function createEventFieldEditor({client,canEdit,event,items,onSaved,onBusy,canEnterEditMode,proposals=()=>[]}){
  const dialog=document.createElement('dialog');dialog.className='event-field-dialog';dialog.setAttribute('aria-labelledby','field-editor-heading');
  dialog.innerHTML='<form><h2 id="field-editor-heading">Text bearbeiten</h2><div class="field-editor-inputs"></div><p class="field-editor-error" role="alert"></p><div class="field-editor-actions"><button type="submit">Speichern</button><button type="button" class="secondary" data-cancel>Abbrechen</button></div></form>';
  document.body.append(dialog);
@@ -50,7 +51,7 @@ export function createEventFieldEditor({client,canEdit,event,items,onSaved,onBus
  function control(key,spec,value){
   const wrapper=document.createElement('div'),label=document.createElement('label');label.htmlFor='field-'+key;label.textContent=spec.label;
   const input=document.createElement(spec.type==='textarea'?'textarea':spec.type==='select'?'select':'input');input.id=label.htmlFor;input.name=key;
-  if(spec.type==='select')for(const [value,text]of Object.entries(spec.options)){const option=document.createElement('option');option.value=value;option.textContent=text;input.append(option);}
+  if(spec.type==='select')for(const [value,text]of Object.entries(spec.options||{})){const option=document.createElement('option');option.value=value;option.textContent=text;input.append(option);}
   else if(spec.type==='textarea')input.rows=5;else input.type=spec.type;
   if(spec.max)input.maxLength=spec.max;if(spec.min){input.minLength=spec.min;input.required=true;}
   if(spec.type==='number'){input.min=1;input.max=31;input.step=1;}
@@ -64,7 +65,8 @@ export function createEventFieldEditor({client,canEdit,event,items,onSaved,onBus
   active={kind,field,id:row.id,expected:Object.fromEntries(fields.map(key=>[key,row[key]??null]))};
   inputs.replaceChildren();error.textContent='';dialog.querySelector('h2').textContent=spec.label+' bearbeiten';
   if(field==='schedule'){
-   control('day_number',{label:'Reisetag (optional)',type:'number'},row.day_number);
+   control('day_number',{label:'Tag',type:'select'},row.day_number);
+   const hint=document.createElement('p');hint.className='subtle';hint.id='field-day-hint';hint.textContent=fillTripDaySelect(inputs.querySelector('[name=day_number]'),event(),proposals(),row.day_number);inputs.querySelector('[name=day_number]').setAttribute('aria-describedby',hint.id);inputs.append(hint);
    control('start_time',{label:'Von',type:'time'},row.start_time);control('end_time',{label:'Bis',type:'time'},row.end_time);
    control('ends_next_day',{label:'Ende am nächsten Tag',type:'checkbox'},row.ends_next_day);
    control('time_label',{label:'Hinweis zur Zeit',type:'text',max:80},row.time_label);
@@ -88,6 +90,7 @@ export function createEventFieldEditor({client,canEdit,event,items,onSaved,onBus
   try{
    const values={};inputs.querySelectorAll('input,textarea,select').forEach(input=>{values[input.name]=input.type==='checkbox'?input.checked:input.value;});
    const patch=fieldPatch(active.kind,active.field,values);
+   if(active.kind==='program'&&active.field==='schedule')Object.assign(patch,validateActivitySchedule(patch,event(),proposals()));
    const result=await client().rpc('save_event_content_fields',{p_kind:active.kind,p_id:active.id,p_patch:patch,p_expected:active.expected});
    if(result.error)throw result.error;
    await onSaved(active.kind,result.data);dialog.close();
