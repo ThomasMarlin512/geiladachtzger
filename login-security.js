@@ -4,10 +4,10 @@
  async function showNotice(client,container,href='/geiladachtzger/einstellungen.html'){
   try{
    const s=await state(client);document.getElementById('login-security-notice')?.remove();
-   if(s.email_login||s.has_personal_code)return;
+   if(!s.is_initial)return;
    const notice=el('p');notice.id='login-security-notice';notice.className='login-security-notice';
-   notice.append(document.createTextNode('Sichere deine Anmeldung für weitere Geräte. '));
-   const a=el('a','Persönlichen Anmeldecode erstellen →');a.href=href;notice.append(a);container?.prepend(notice);
+   notice.append(document.createTextNode('Du verwendest noch den gemeinsamen Startcode. '));
+   const a=el('a','Eigenen Code festlegen →');a.href=href;notice.append(a);container?.prepend(notice);
   }catch{/* Existing member sessions remain usable during a connection failure. */}
  }
  async function showCode(client,memberKey,label){
@@ -37,10 +37,32 @@
  async function mountProfile(client){
   const panel=document.getElementById('login-security-panel');if(!panel)return;
   try{
-   const s=await state(client);panel.replaceChildren(el('h2','Anmeldung auf weiteren Geräten'));
-   if(s.email_login){panel.append(el('p',s.is_admin?'Dein Adminzugang verwendet deine bestätigte E-Mail. Melde dich auf einem neuen Gerät über „Mit E-Mail anmelden“ an.':'Deine bestätigte E-Mail ist für die Anmeldung eingerichtet. Verwende auf neuen Geräten den E-Mail-Anmeldelink.'));return;}
-   panel.append(el('p',s.has_personal_code?'Melde dich mit deinem Namen oder Nickname und deinem persönlichen Anmeldecode an.':'Erstelle deinen persönlichen Anmeldecode, bevor du dieses Gerät abmeldest. Der Gruppencode dient nur noch dem Beitritt neuer Mitglieder.'));
-   const button=el('button',s.has_personal_code?'Persönlichen Code erneuern':'Persönlichen Code erstellen');button.type='button';button.onclick=()=>showCode(client,null,'Dein persönlicher Anmeldecode');panel.append(button);
+   const s=await state(client);panel.replaceChildren(el('h2','Mein Anmeldecode'));
+   panel.append(el('p','Melde dich mit Nickname, vollständigem Namen oder deiner gespeicherten E-Mail und deinem Code an. Eine Änderung gilt nur für dein Konto, auf allen Veranstaltungsseiten.'));
+   const initialHint=el('p','Du verwendest noch den gemeinsamen Startcode. Hier kannst du einen eigenen Code festlegen.');initialHint.hidden=!s.is_initial;panel.append(initialHint);
+   const form=el('form'),fields={};
+   for(const [key,label,autocomplete] of [['current','Aktueller Code','current-password'],['next','Neuer Code','new-password'],['repeat','Neuen Code wiederholen','new-password']]){
+    const input=el('input'),caption=el('label',label);input.id='my-code-'+key;caption.htmlFor=input.id;
+    input.type='password';input.autocomplete=autocomplete;input.required=true;input.minLength=4;input.maxLength=64;
+    input.autocapitalize='off';input.spellcheck=false;fields[key]=input;form.append(caption,input);
+   }
+   form.append(el('small','4 bis 64 Zeichen. Wähle einen Code, den nur du kennst.'));
+   const button=el('button','Code speichern');button.type='submit';
+   const message=el('p');message.setAttribute('role','status');message.setAttribute('aria-live','polite');
+   form.append(button,message);panel.append(form);let saving=false;
+   form.onsubmit=async event=>{
+    event.preventDefault();if(saving||!form.reportValidity())return;
+    if(fields.next.value.trim()!==fields.repeat.value.trim()){message.textContent='Die neuen Codes stimmen nicht überein.';return;}
+    saving=true;button.disabled=true;message.textContent='Code wird gespeichert …';
+    try{
+     const result=await client.rpc('change_my_login_code',{p_current_code:fields.current.value,p_new_code:fields.next.value});
+     if(result.error)throw result.error;
+     for(const input of Object.values(fields))input.value='';
+     document.getElementById('login-security-notice')?.remove();initialHint.hidden=true;
+     message.textContent='Dein Code wurde geändert. Ab jetzt gilt für dich nur noch der neue Code. Bestehende Anmeldungen bleiben erhalten.';
+    }catch(e){message.textContent='Nicht gespeichert: '+e.message;}
+    finally{saving=false;button.disabled=false;}
+   };
   }catch(e){panel.replaceChildren(el('p','Anmeldeeinstellungen konnten nicht geladen werden: '+e.message));}
  }
  window.GroupLoginSecurity={showNotice,mountProfile,showCode};

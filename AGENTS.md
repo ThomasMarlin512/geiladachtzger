@@ -67,16 +67,20 @@ remain planning/confirmed/saved. House + Hauptseite always links to the group
 hub; calendar + Übersicht links to the current event, with text labels alongside
 icons so the two destinations remain clear on phones.
 
-Returning members without confirmed email log in with their nickname or full name
-and an individual high-entropy login code. The shared group code is only for new
-members; never use it to recover an existing identity. Confirmed email accounts,
-especially administrators, use verified email login and cannot be moved by code.
-Existing sessions stay valid. Personal codes are issued only to the signed-in
-owner or by the verified administrator for non-admin accounts; store only hashes.
-Never log or persist the plaintext personal code in browser storage. Reject
-ambiguous aliases. Preserve the canonical nickname, stable roster key, votes
-and organizer rights. Login fields allow 100 characters; new nicknames stay
-limited to 50. Never retrieve private profiles in the unauthenticated frontend.
+Returning members sign in through member-code-login using nickname, full name,
+or saved/verified email plus an individually changeable code. This also applies
+to the administrator by explicit user request. The user chose a common initial
+code; changing it in settings affects only that member. Store salted bcrypt
+hashes privately and never expose email aliases, codes or service credentials.
+The server function verifies the caller Auth token, validates the member code
+and limits failed attempts. Confirmed-email accounts keep their original user ID:
+issue a one-use Auth token without sending an email, then verify it in the client.
+Never move a verified email/admin account to an anonymous identity. Preserve the
+stable roster, votes and organizer rights for other member recovery. The legacy
+recovery RPC is retired; do not allow it to bypass failed-attempt limits.
+Settings require the current code, new code and confirmation; allow 4–64 characters.
+The optional email-link path remains available. Login identifiers allow 254
+characters; names and newly created nicknames retain their profile limits.
 
 Personal settings are centralized at einstellungen.html in this group hub.
 Every event links there using the event query parameter for its return link.

@@ -56,7 +56,7 @@ begin
  begin
   perform public.recover_kufstein_member(current_setting('test.code'),current_setting('test.admin_nick'));
   raise exception 'Admin code recovery allowed';
- exception when raise_exception then if sqlerrm not like 'Bitte mit deiner bestätigten E-Mail%' then raise;end if;end;
+ exception when raise_exception then if sqlerrm not like 'Bitte die Seite neu laden.%' then raise;end if;end;
  perform set_config('request.jwt.claim.sub',current_setting('test.member'),true);
  own:=public.get_my_kufstein_profile();
  if own->>'email'<>'private-test@example.test' or own->>'full_name'<>'Test Member Updated' then raise exception 'Private email changed or public name not synchronized';end if;

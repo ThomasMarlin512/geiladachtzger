@@ -63,12 +63,14 @@ async function authenticate(join) {
  status('Anmeldung wird geprüft …','auth-status');
  try {
   const name=$(join?'join-name':'login-name').value.trim(), code=$(join?'join-code':'login-code').value;
-  const {data:{session},error}=await sb.auth.getSession();if(error)throw error;
-  user=session?.user;
-  if(!user){const result=await sb.auth.signInAnonymously();if(result.error)throw result.error;user=result.data.user;}
-  const result=await sb.rpc(join?'join_kufstein_group':'recover_kufstein_member',{p_name:name,p_code:code});
-  if(result.error)throw result.error;
+  if(join){
+   const {data:{session},error}=await sb.auth.getSession();if(error)throw error;
+   user=session?.user;
+   if(!user){const result=await sb.auth.signInAnonymously();if(result.error)throw result.error;user=result.data.user;}
+   const result=await sb.rpc('join_kufstein_group',{p_name:name,p_code:code});if(result.error)throw result.error;
+  }else user=await window.GroupMemberLogin.signIn(sb,name,code);
   await enter();
+  $(join?'join-code':'login-code').value='';
   status('','auth-status');
  } catch(e) { status(e.message||'Anmeldung fehlgeschlagen.','auth-status'); }
  finally {busy=false;submit.disabled=false;}
@@ -76,7 +78,7 @@ async function authenticate(join) {
 async function enter() {
  const m=await sb.from('group_members').select('display_name').eq('user_id',user.id).maybeSingle();
  if(m.error)throw m.error;
- if(!m.data)throw Error('Bitte mit Nickname oder vollständigem Namen und persönlichem Anmeldecode anmelden.');
+ if(!m.data)throw Error('Bitte mit Nickname, vollständigem Namen oder E-Mail und deinem Code anmelden.');
  const key=await sb.from('trip_attendance').select('roster_key').eq('user_id',user.id).single();
  if(key.error)throw key.error;
  member=m.data;memberKey=key.data.roster_key;
