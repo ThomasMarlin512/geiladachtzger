@@ -14,6 +14,16 @@ const before=JSON.stringify({options,votes});summarizeDates(options,votes,'me',p
 assert.match(formatPeriod('2027-09-02','2027-09-05'),/Do/);assert.match(formatPeriod('2027-09-02','2027-09-05'),/So/);assert.match(formatPeriod('2027-12-30','2028-01-02'),/2028/);
 const events=[{id:'trip',title:'Test <b>trip</b>',status:'planning'},{id:'fixed',title:'Confirmed only',status:'confirmed'},{id:'saved',title:'Saved only',status:'saved'}];
 const cards=planningCards(events,options,votes,'me',people,'2026-10-10');assert.ok(cards.includes('1 Antworten von dir offen'));assert.ok(cards.includes('view=termine'));assert.ok(cards.includes('Programm & Reiseinfos'));assert.ok(!cards.includes('Confirmed only'));assert.ok(!cards.includes('Saved only'));assert.ok(!cards.includes('<b>trip</b>'));
+const coverEvent={...events[0],cover_image_url:'https://example.test/destination.jpg',cover_source_url:'https://example.test/source',cover_credit:'Tourism <office>'};
+const programImages=[{event_id:'elsewhere',image_url:'https://example.test/other.jpg',image_source_url:'https://example.test/other'},{event_id:'trip',image_url:'https://example.test/activity.jpg',image_source_url:'https://example.test/activity',image_credit:'Activity photographer'}];
+const coverCards=planningCards([coverEvent],options,votes,'me',people,'2026-10-10',programImages);
+assert.match(coverCards,/class="event-card-photo" src="https:\/\/example.test\/destination.jpg"/);
+assert.ok(coverCards.includes('Foto: Tourism &lt;office&gt;'));assert.ok(coverCards.includes('href="https://example.test/source"'));
+assert.ok(!coverCards.includes('activity.jpg'));assert.ok(!coverCards.includes('other.jpg'));
+const fallbackCards=planningCards(events,options,votes,'me',people,'2026-10-10',programImages);
+assert.ok(fallbackCards.includes('activity.jpg'));assert.ok(!fallbackCards.includes('other.jpg'));
+const noCover=planningCards([{...coverEvent,cover_image_url:'javascript:alert(1)'}],options,votes,'me',people,'2026-10-10',programImages.slice(0,1));
+assert.ok(!noCover.includes('<img'));assert.ok(!noCover.includes('javascript:'));assert.ok(noCover.includes('view=termine'));
 assert.equal(photoPageUrl({id:'kufstein-2026'}),'/kufstein-2026/fotos.html');assert.ok(photoPageUrl({id:'unsafe&query'}).includes('unsafe%26query'));
 const albums=photoCards([{id:'kufstein-2026',title:'Kufstein'},{id:'unsafe',title:'Unsafe',album_url:'https://name:password@example.test'},{id:'real',title:'Real',album_url:'https://example.test/album'}]);
 assert.ok(albums.includes('Kufstein'));assert.ok(albums.includes('Real'));assert.ok(!albums.includes('Unsafe'));assert.ok(!albums.includes('password'));

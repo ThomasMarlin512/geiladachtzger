@@ -1,5 +1,5 @@
 import {createEventFieldEditor} from './event-field-editor.js?v=owners-20261011-1';
-import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=clarity-20261010-1';
+import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=poll-covers-20261011-1';
 import {createMemberDirectory} from './member-directory.js?v=clarity-20261010-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
 import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=fields-20261011-1';
@@ -131,7 +131,7 @@ function renderHome() {
  $('saved-list').innerHTML=saved.map(e=>eventCard(e)).join('')||'<div class="empty">Noch keine Ideen für später gespeichert.</div>';
  $('past-list').innerHTML=previous.map(e=>eventCard(e,true)).join('');
  $('rueckblick').hidden=previous.length===0;$('past-count').textContent=String(previous.length);$('saved-count').textContent=String(saved.length);
- $('planning-overview').innerHTML=planningCards(events,options,votes,memberKey,people,todayVienna());
+ $('planning-overview').innerHTML=planningCards(events,options,votes,memberKey,people,todayVienna(),programItems);
  $('photo-albums').innerHTML=photoCards(events,programItems);
  $('next-event').innerHTML=next?'<div class="next-event"><div><p class="eyebrow">ALS NÄCHSTES</p><h2>'+esc(next.title)+'</h2><p>'+esc(dateRange(next.start_date,next.end_date))+' · '+esc(next.location)+'</p></div><div class="hero-actions"><a class="button" href="'+esc(eventWebsiteUrl(next))+'">Zum Ausflug →</a><a class="button secondary photo-button" href="'+esc(photoPageUrl(next))+'">📷 Fotos</a></div></div>':'';
  const cover=next?eventCover(next,programItems):null;

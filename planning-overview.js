@@ -18,14 +18,15 @@ export function summarizeDates(options,votes,memberKey,people=[],today=''){
  const best=top?.yes>0?ranked.filter(r=>r.yes===top.yes&&r.no===top.no&&r.maybe===top.maybe):[];
  return {rows,answered:rows.filter(r=>r.own).length,pending:rows.filter(r=>!r.own).length,best};
 }
-export function planningCards(events,options,votes,memberKey,people,today){
+export function planningCards(events,options,votes,memberKey,people,today,items=[]){
  const planning=events.filter(e=>e.status==='planning');
  if(!planning.length)return '<p class="subtle">Aktuell ist keine Terminabstimmung offen. Bei einem neuen Vorschlag könnt ihr wieder gemeinsam abstimmen.</p>';
  return planning.map(event=>{
   const s=summarizeDates(options.filter(o=>o.event_id===event.id),votes,memberKey,people,today);
   const progress=s.rows.length?s.answered+' von '+s.rows.length+' Zeiträumen beantwortet':'Noch kein offener Terminvorschlag';
   const leading=s.best.length===1?'Bisher passendster Termin: '+formatPeriod(s.best[0].start_date,s.best[0].end_date)+' · '+s.best[0].yes+' Zusagen':s.best.length>1?s.best.length+' Termine liegen gleichauf.':'Noch kein Termin mit Zusagen.';
-  return '<article class="planning-summary"><div><span class="tag '+(s.pending?'':'confirmed')+'">'+(s.pending?s.pending+' Antworten von dir offen':s.rows.length?'Du hast abgestimmt':'Termin vorschlagen')+'</span><h3>'+esc(event.title)+'</h3><p>'+progress+'</p><p class="subtle">'+esc(leading)+'</p></div><a class="button '+(s.pending?'':'secondary')+'" href="'+esc(eventUrl(event,'termine'))+'">'+(s.rows.length?(s.pending?'Jetzt abstimmen':'Abstimmung ansehen'):'Termin vorschlagen')+' →</a><a class="text-link planning-event-link" href="'+esc(eventUrl(event))+'">Programm & Reiseinfos →</a></article>';
+  const cover=eventCover(event,items);
+  return '<article class="planning-summary'+(cover?' planning-photo-card':'')+'">'+(cover?'<img class="event-card-photo" src="'+esc(cover.image)+'" alt="" loading="lazy">':'')+'<div class="planning-summary-content"><div><span class="tag '+(s.pending?'':'confirmed')+'">'+(s.pending?s.pending+' Antworten von dir offen':s.rows.length?'Du hast abgestimmt':'Termin vorschlagen')+'</span><h3>'+esc(event.title)+'</h3><p>'+progress+'</p><p class="subtle">'+esc(leading)+'</p></div><a class="button '+(s.pending?'':'secondary')+'" href="'+esc(eventUrl(event,'termine'))+'">'+(s.rows.length?(s.pending?'Jetzt abstimmen':'Abstimmung ansehen'):'Termin vorschlagen')+' →</a><a class="text-link planning-event-link" href="'+esc(eventUrl(event))+'">Programm & Reiseinfos →</a>'+(cover?'<small class="cover-credit"><a href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(cover.credit)+'</a></small>':'')+'</div></article>';
  }).join('');
 }
 export function photoCards(events,items=[]){

@@ -93,3 +93,11 @@ nav .home-nav-link:hover{background:#164052}
 .trip-hero .event-title,.trip-hero-content p{text-shadow:0 2px 12px #00111bcc}
 .hub-hero:after{background:linear-gradient(90deg,rgba(4,25,39,.9),rgba(4,25,39,.35))}
 .hub-album-card:after{background:linear-gradient(90deg,rgba(7,27,44,.85),rgba(7,27,44,.35))}
+
+/* Date-poll cards use the same destination cover as the excursion page. */
+.planning-summary{position:relative;isolation:isolate;overflow:hidden}
+.planning-summary-content{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:space-between;gap:12px;flex:1;min-width:0}
+.planning-photo-card:after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(145deg,rgba(3,23,37,.74),rgba(3,23,37,.60) 45%,rgba(3,23,37,.90))}
+.planning-photo-card h3,.planning-photo-card p{color:#f2f9fc;text-shadow:0 2px 8px #00111b}
+.planning-photo-card .planning-event-link,.planning-photo-card .cover-credit{color:#c3f9f3}
+.planning-summary .cover-credit{margin-top:0}

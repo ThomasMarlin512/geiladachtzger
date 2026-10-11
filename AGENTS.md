@@ -127,3 +127,6 @@ overlay 1, content 2 and credits 3. Avoid negative z-index on cover images.
 The current destination cover files are mirrored in assets/covers with their
 original photo credits and official source URLs stored in group_events. Prefer
 an explicit event cover, so editing a program photo does not remove the title image.
+The hub's date-poll summary cards also render that event cover, with the same
+own-event program-photo fallback, visible source credit and readable overlay.
+Pass programItems to planningCards so new proposals inherit this behavior.
