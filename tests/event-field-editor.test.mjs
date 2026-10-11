@@ -30,3 +30,6 @@ console.log('PASS: field validation, nullable times, secure links, date rules, a
 
 assert.equal(fieldPatch('program','category',{category:'food'}).category,'food');
 assert.throws(()=>fieldPatch('program','category',{category:'invalid'}));
+
+assert.equal(fieldPatch('program','plan_status',{plan_status:'booked'}).plan_status,'booked');
+assert.throws(()=>fieldPatch('program','plan_status',{plan_status:'anything'}));

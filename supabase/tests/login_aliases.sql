@@ -7,9 +7,7 @@ begin
  full_name:='Login Verification Full Name Longer Than Fifty Characters '||suffix;
  profile_name:='Login Profile Alias '||suffix;
  perform set_config('test.login_full',full_name,true);perform set_config('test.login_profile',profile_name,true);
- perform set_config('test.login_code','only-in-rolled-back-test-'||suffix,true);
- -- Test-only secret within this transaction; live sessions continue to see the committed setting.
- update public.group_settings set code_hash=md5(current_setting('test.login_code')) where id=1;
+ -- Personal codes are issued through the authenticated endpoint below.
  insert into auth.users(id,role,aud,created_at,updated_at) values(old_id,'authenticated','authenticated',now(),now()),(other_id,'authenticated','authenticated',now(),now()),(fresh_id,'authenticated','authenticated',now(),now());
  insert into public.group_members(user_id,display_name) values(old_id,current_setting('test.login_nick')),(other_id,'login-other-'||suffix);
  select roster_key into old_key from public.trip_attendance where user_id=old_id;
@@ -28,18 +26,19 @@ begin
 end $$;
 set local role authenticated;
 do $$ begin
+ perform set_config('test.login_code',public.issue_member_login_code(null)->>'code',true);
  perform public.recover_kufstein_member(current_setting('test.login_code'),upper(current_setting('test.login_nick')));
  perform public.recover_kufstein_member(current_setting('test.login_code'),'  '||replace(lower(current_setting('test.login_full')),' ','   ')||'  ');
  perform public.recover_kufstein_member(current_setting('test.login_code'),current_setting('test.login_profile'));
  if (select display_name from public.group_members where user_id=auth.uid())<>current_setting('test.login_nick') then raise exception 'Full name changed the nickname';end if;
  begin
   perform public.recover_kufstein_member('wrong-test-code',current_setting('test.login_full'));
-  raise exception 'Wrong group code accepted';
- exception when raise_exception then if sqlerrm<>'Ungültiger Gruppencode' then raise;end if;end;
+  raise exception 'Wrong personal code accepted';
+ exception when raise_exception then if sqlerrm not like 'Name oder persönlicher Anmeldecode%' then raise;end if;end;
  begin
   perform public.recover_kufstein_member(current_setting('test.login_code'),'unknown-test-person');
   raise exception 'Unknown name accepted';
- exception when raise_exception then if sqlerrm not like 'Teilnehmer nicht gefunden%' then raise;end if;end;
+ exception when raise_exception then if sqlerrm not like 'Name oder persönlicher Anmeldecode%' then raise;end if;end;
  perform set_config('request.jwt.claim.sub',current_setting('test.login_other'),true);
  perform set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('test.login_other'),'role','authenticated')::text,true);
  begin
@@ -56,7 +55,7 @@ do $$ begin
  begin
   perform public.recover_kufstein_member(current_setting('test.login_code'),current_setting('test.login_full'));
   raise exception 'Ambiguous full name accepted';
- exception when raise_exception then if sqlerrm not like 'Name nicht eindeutig%' then raise;end if;end;
+ exception when raise_exception then if sqlerrm not like 'Name oder persönlicher Anmeldecode%' then raise;end if;end;
  -- The unique nickname still identifies the original member.
  perform public.recover_kufstein_member(current_setting('test.login_code'),current_setting('test.login_nick'));
  if (select display_name from public.group_members where user_id=auth.uid())<>current_setting('test.login_nick') then raise exception 'Recovery did not preserve nickname';end if;

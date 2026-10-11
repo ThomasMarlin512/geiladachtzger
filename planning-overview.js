@@ -1,5 +1,5 @@
-import {escapeHtml as esc,httpsUrl} from './trip-program.js?v=20261010-3';
-import {eventUrl,eventCover,photoPageUrl} from './event-layout.js?v=clarity-20261010-1';
+import {escapeHtml as esc,httpsUrl} from './trip-program.js?v=unified-20261011-2';
+import {eventUrl,eventCover,coverImage,photoPageUrl} from './event-layout.js?v=unified-20261011-2';
 export function formatPeriod(start,end){
  const format=value=>new Intl.DateTimeFormat('de-AT',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'));
  return format(start)+(start!==end?' – '+format(end):'');
@@ -26,13 +26,13 @@ export function planningCards(events,options,votes,memberKey,people,today,items=
   const progress=s.rows.length?s.answered+' von '+s.rows.length+' Zeiträumen beantwortet':'Noch kein offener Terminvorschlag';
   const leading=s.best.length===1?'Bisher passendster Termin: '+formatPeriod(s.best[0].start_date,s.best[0].end_date)+' · '+s.best[0].yes+' Zusagen':s.best.length>1?s.best.length+' Termine liegen gleichauf.':'Noch kein Termin mit Zusagen.';
   const cover=eventCover(event,items);
-  return '<article class="planning-summary'+(cover?' planning-photo-card':'')+'">'+(cover?'<img class="event-card-photo" src="'+esc(cover.image)+'" alt="" loading="lazy">':'')+'<div class="planning-summary-content"><div><span class="tag '+(s.pending?'':'confirmed')+'">'+(s.pending?s.pending+' Antworten von dir offen':s.rows.length?'Du hast abgestimmt':'Termin vorschlagen')+'</span><h3>'+esc(event.title)+'</h3><p>'+progress+'</p><p class="subtle">'+esc(leading)+'</p></div><a class="button '+(s.pending?'':'secondary')+'" href="'+esc(eventUrl(event,'termine'))+'">'+(s.rows.length?(s.pending?'Jetzt abstimmen':'Abstimmung ansehen'):'Termin vorschlagen')+' →</a><a class="text-link planning-event-link" href="'+esc(eventUrl(event))+'">Programm & Reiseinfos →</a>'+(cover?'<small class="cover-credit"><a href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(cover.credit)+'</a></small>':'')+'</div></article>';
+  return '<article class="planning-summary'+(cover?' planning-photo-card':'')+'">'+coverImage(cover,'event-card-photo')+'<div class="planning-summary-content"><div><span class="tag '+(s.pending?'':'confirmed')+'">'+(s.pending?s.pending+' Antworten von dir offen':s.rows.length?'Du hast abgestimmt':'Termin vorschlagen')+'</span><h3>'+esc(event.title)+'</h3><p>'+progress+'</p><p class="subtle">'+esc(leading)+'</p></div><a class="button '+(s.pending?'':'secondary')+'" href="'+esc(eventUrl(event,'termine'))+'">'+(s.rows.length?(s.pending?'Jetzt abstimmen':'Abstimmung ansehen'):'Termin vorschlagen')+' →</a><a class="text-link planning-event-link" href="'+esc(eventUrl(event))+'">Programm & Reiseinfos →</a>'+(cover?'<small class="cover-credit"><a href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(cover.credit)+'</a></small>':'')+'</div></article>';
  }).join('');
 }
 export function photoCards(events,items=[]){
  const albums=events.filter(e=>e.id==='kufstein-2026'||httpsUrl(e.album_url));
  return albums.map(event=>{
   const cover=eventCover(event,items);
-  return '<article class="hub-album-card">'+(cover?'<img class="album-destination-cover" src="'+esc(cover.image)+'" alt="" loading="lazy">':'')+'<div class="hub-album-content"><p class="eyebrow">GEMEINSAMES FOTOALBUM</p><h3>'+esc(event.title)+'</h3><a class="button photo-button" href="'+esc(photoPageUrl(event))+'">Fotos ansehen →</a>'+(cover?'<small class="cover-credit"><a href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Titelbild: '+esc(cover.credit)+'</a></small>':'')+'</div></article>';
+  return '<article class="hub-album-card">'+coverImage(cover,'album-destination-cover')+'<div class="hub-album-content"><p class="eyebrow">GEMEINSAMES FOTOALBUM</p><h3>'+esc(event.title)+'</h3><a class="button photo-button" href="'+esc(photoPageUrl(event))+'">Fotos ansehen →</a>'+(cover?'<small class="cover-credit"><a href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Titelbild: '+esc(cover.credit)+'</a></small>':'')+'</div></article>';
  }).join('')||'<p class="subtle">Noch kein Album verlinkt. Auf der jeweiligen Veranstaltungsseite kann der Ersteller unter „Fotos“ einen Albumlink ergänzen.</p>';
 }

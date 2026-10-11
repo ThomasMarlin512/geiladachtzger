@@ -101,3 +101,7 @@ nav .home-nav-link:hover{background:#164052}
 .planning-photo-card h3,.planning-photo-card p{color:#f2f9fc;text-shadow:0 2px 8px #00111b}
 .planning-photo-card .planning-event-link,.planning-photo-card .cover-credit{color:#c3f9f3}
 .planning-summary .cover-credit{margin-top:0}
+
+#hub-hero{scroll-margin-top:145px}
+
+.program-status{display:inline-block;font-size:12px;font-weight:700;padding:5px 9px;margin:0 8px 10px 0;border-radius:7px;background:#294a60;color:#dcecf4}.program-status.status-planned{background:#174e48;color:#b4f3dc}.program-status.status-booked{background:#24523b;color:#c3f8cd}.program-status.status-alternative{background:#423859;color:#e8ddff}.program-status.has-field-pencil{padding-top:12px!important}.itinerary-planned,.itinerary-proposals{margin-top:24px}.itinerary-proposals{border-top:1px solid var(--line);padding-top:24px}

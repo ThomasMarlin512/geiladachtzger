@@ -6,6 +6,7 @@ begin
  perform set_config('test.admin',a::text,true);perform set_config('test.member',m::text,true);perform set_config('test.outsider',o::text,true);perform set_config('test.fresh',f::text,true);
  perform set_config('test.admin_nick','admin-test-'||suffix,true);perform set_config('test.member_nick','member-test-'||suffix,true);perform set_config('test.changed_nick','renamed-test-'||suffix,true);
  insert into auth.users(id,role,aud,created_at,updated_at) values(a,'authenticated','authenticated',now(),now()),(m,'authenticated','authenticated',now(),now()),(o,'authenticated','authenticated',now(),now()),(f,'authenticated','authenticated',now(),now());
+ update auth.users set is_anonymous=false,email=a::text||'@example.invalid',email_confirmed_at=now() where id=a;
  insert into public.group_members(user_id,display_name) values(a,current_setting('test.admin_nick')),(m,current_setting('test.member_nick'));
  select roster_key into k from public.trip_attendance where user_id=a;
  insert into group_private.admins(member_key) values(k);perform set_config('test.admin_key',k,true);
@@ -50,10 +51,12 @@ begin
  if (select nickname from public.trip_attendance where roster_key=current_setting('test.member_key'))<>current_setting('test.changed_nick') then raise exception 'Nickname not synchronized';end if;
  perform public.update_group_member(current_setting('test.pending')::uuid,'Test Pending Updated','','Test Pending Member','');
  begin perform public.update_group_member(current_setting('test.pending')::uuid,'Test Pending Updated','Assigned nickname','Test Pending Updated','');raise exception 'Pending member nickname accepted';exception when raise_exception then if sqlerrm<>'Den Nickname legt das Mitglied bei der Anmeldung fest' then raise;end if;end;
- -- Moving an admin's account to a fresh device retains its stable admin identity.
+ -- Admin identity cannot be moved with a shared or personal code.
  perform set_config('request.jwt.claim.sub',current_setting('test.fresh'),true);
- perform public.recover_kufstein_member(current_setting('test.code'),current_setting('test.admin_nick'));
- if not (public.get_group_member_directory()->>'can_manage')::boolean then raise exception 'Admin role lost after recovery';end if;
+ begin
+  perform public.recover_kufstein_member(current_setting('test.code'),current_setting('test.admin_nick'));
+  raise exception 'Admin code recovery allowed';
+ exception when raise_exception then if sqlerrm not like 'Bitte mit deiner bestätigten E-Mail%' then raise;end if;end;
  perform set_config('request.jwt.claim.sub',current_setting('test.member'),true);
  own:=public.get_my_kufstein_profile();
  if own->>'email'<>'private-test@example.test' or own->>'full_name'<>'Test Member Updated' then raise exception 'Private email changed or public name not synchronized';end if;
@@ -62,4 +65,4 @@ begin
 end $$;
 reset role;
 rollback;
-select 'PASS: member directory and private email isolation; own-profile sync; admin-only names, uniqueness and stale-edit checks; pending members; admin recovery; preserved votes and roster identity. All fixtures rolled back.' as result;
+select 'PASS: member directory and private email isolation; own-profile sync; admin-only names, uniqueness and stale-edit checks; pending members; admin code recovery rejected; preserved votes and roster identity. All fixtures rolled back.' as result;

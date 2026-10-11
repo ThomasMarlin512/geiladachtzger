@@ -135,3 +135,17 @@ an explicit event cover, so editing a program photo does not remove the title im
 The hub's date-poll summary cards also render that event cover, with the same
 own-event program-photo fallback, visible source credit and readable overlay.
 Pass programItems to planningCards so new proposals inherit this behavior.
+
+The Events hub link targets the featured next trip (#hub-hero). All excursion
+pages share the sticky overview/program/dates/photos navigation styling from
+trip-navigation.css; hide dates when confirmed. Kufstein keeps its data and text
+keys, but trip-views.js presents overview and program separately. Its legacy
+abstimmung.html redirects to the program while preserving auth query/hash data.
+Keep open date-voter details by stable option IDs across refreshes.
+Program plan_status is idea/alternative/planned/booked. Only planned and booked
+items form the firm itinerary; render suggestions separately and never promote
+an item from votes alone. Preserve creator/admin authorization for status edits.
+Explicit times sort first by time; clearly labelled morning/afternoon/evening
+hints may guide ordering when times are absent, without displaying invented times.
+cover-variants.js maps existing credited assets to generated responsive files;
+unknown/new cover URLs must retain their original-image fallback.

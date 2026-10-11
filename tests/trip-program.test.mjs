@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {summarizeDates,formatPeriod} from '../planning-overview.js';
-import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields} from '../event-layout.js';
+import {eventUrl,activeView,eventCover,coverImage,travelCards,albumCard,travelTimeline,detailFields} from '../event-layout.js';
 const moduleSource=readFileSync(new URL('../trip-program.js',import.meta.url),'utf8');
 const {httpsUrl,dayLabel,programCards,programTimeline,scheduleLabel,sortProgram,programPhoto}=await import('data:text/javascript;base64,'+Buffer.from(moduleSource).toString('base64'));
 assert.equal(httpsUrl('javascript:alert(1)'), '');
@@ -25,7 +25,7 @@ const renderSource=source.slice(source.indexOf('function renderEvent()'),source.
 const nodes=new Map();
 const get=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,value:'',innerHTML:'',replaceChildren(){this.innerHTML='';}});return nodes.get(id);};
 const event={id:'trip',status:'planning',title:'Test',location:'Test',created_by_key:'someone',description:'Test',website_url:''};
-const context={fieldEditor:null,$:get,summarizeDates,formatPeriod,dateLabels:{yes:'✓ Passt',maybe:'? Vielleicht',no:'✕ Geht nicht'},nameFor:key=>key,events:[event],currentEventId:'trip',document:{activeElement:null,querySelectorAll:()=>[]},memberKey:'member',programItems:[],programPhoto,httpsUrl,eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields,wireEventImages:()=>{},esc:String,safeUrl:()=>'',past:()=>false,dateRange:()=>'',people:[],stateLabels:{planning:'In Planung',confirmed:'Termin steht'},options:[],votes:[],votingCalendar:()=>'<calendar/>',dateCards:()=>'',wireVotes:()=>{},renderProgram:()=>{},renderPeople:()=>{},todayVienna:()=> '2026-10-10',location:{hash:'',search:'?id=trip&view=termine'}};
+const context={replaceKeepingOpenDetails:(container,html)=>{container.innerHTML=html;},fieldEditor:null,$:get,summarizeDates,formatPeriod,dateLabels:{yes:'✓ Passt',maybe:'? Vielleicht',no:'✕ Geht nicht'},nameFor:key=>key,events:[event],currentEventId:'trip',document:{activeElement:null,querySelectorAll:()=>[]},memberKey:'member',programItems:[],programPhoto,httpsUrl,eventUrl,activeView,eventCover,coverImage,travelCards,albumCard,travelTimeline,detailFields,wireEventImages:()=>{},esc:String,safeUrl:()=>'',past:()=>false,dateRange:()=>'',people:[],stateLabels:{planning:'In Planung',confirmed:'Termin steht'},options:[],votes:[],votingCalendar:()=>'<calendar/>',dateCards:()=>'',wireVotes:()=>{},renderProgram:()=>{},renderPeople:()=>{},todayVienna:()=> '2026-10-10',location:{hash:'',search:'?id=trip&view=termine'}};
 vm.createContext(context);vm.runInContext(source.slice(source.indexOf('function dateCards('),source.indexOf('function wireVotes(')),context);vm.runInContext(renderSource,context);context.renderEvent();
 assert.equal(get('event-dates-section').hidden,false);
 assert.equal(get('organizer-section').hidden,true);
@@ -86,3 +86,11 @@ for(const [key,admin,editable] of [['owner',false,true],['other',false,false],['
  assert(cards.includes('data-program-link="owned"'));
 }
 console.log('PASS: program editing restricted to author and admin in cards and itinerary');
+
+assert.deepEqual(sortProgram([{id:'pm',day_number:2,time_label:'Nachmittags · Vorschlag'},{id:'am',day_number:2,time_label:'Vormittags · Vorschlag'}]).map(i=>i.id),['am','pm']);
+const stages=programTimeline([{id:'idea',title:'Just an idea',plan_status:'idea'},{id:'booked',title:'Booked dinner',plan_status:'booked',day_number:1,start_time:'18:00'},{id:'alt',title:'Rain alternative',plan_status:'alternative'}],{});
+assert(stages.indexOf('Booked dinner')<stages.indexOf('IDEEN & ALTERNATIVEN'));
+assert(stages.indexOf('Just an idea')>stages.indexOf('IDEEN & ALTERNATIVEN'));
+assert(stages.indexOf('Rain alternative')>stages.indexOf('IDEEN & ALTERNATIVEN'));
+assert.match(programTimeline([{id:'only',title:'Unconfirmed'}],{}),/Noch nichts fest eingeplant/);
+console.log('PASS: morning before afternoon without invented times, ideas separated from planned bookings');

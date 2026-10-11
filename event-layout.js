@@ -1,4 +1,5 @@
-import {escapeHtml as esc,httpsUrl,programPhoto} from './trip-program.js?v=fields-20261011-1';
+import {coverVariants} from './cover-variants.js?v=optimized-20261011-1';
+import {escapeHtml as esc,httpsUrl,programPhoto} from './trip-program.js?v=unified-20261011-2';
 
 export const eventViews=['uebersicht','programm','termine','fotos'];
 export const detailFields=['outbound_time','outbound_details','outbound_url','return_time','return_details','return_url','hotel_name','hotel_url','hotel_details','hotel_status','album_url','album_label','cover_image_url','cover_source_url','cover_credit'];
@@ -14,6 +15,12 @@ export function eventCover(event,items=[]){
  const image=httpsUrl(event.cover_image_url),source=httpsUrl(event.cover_source_url);
  if(image&&source)return {image,source,credit:event.cover_credit||new URL(source).hostname};
  return items.filter(i=>i.event_id===event.id).map(programPhoto).find(Boolean)||null;
+}
+export function coverImage(cover,className,hero=false){
+ if(!cover)return '';
+ const variant=coverVariants[cover.image];
+ const sizes=hero?'(max-width: 1028px) 100vw, 980px':'(max-width: 700px) calc(100vw - 48px), 520px';
+ return '<img class="'+esc(className)+'" src="'+esc(variant?.src||cover.image)+'"'+(variant?' srcset="'+esc(variant.srcset)+'" sizes="'+sizes+'" width="'+variant.width+'" height="'+variant.height+'"':'')+' alt="" loading="'+(hero?'eager':'lazy')+'" decoding="async"'+(hero?' fetchpriority="high"':'')+'>';
 }
 const external=(url,label)=>httpsUrl(url)?'<a class="text-link" href="'+esc(httpsUrl(url))+'" target="_blank" rel="noopener noreferrer">'+esc(label)+' ↗</a>':'';
 const time=value=>value?.slice(0,5)||'';

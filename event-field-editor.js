@@ -7,7 +7,7 @@ export const eventFieldSpecs={
  hotel_name:{label:'Hotel / Unterkunft',type:'text',max:160},hotel_status:{label:'Stand der Unterkunft',type:'select',options:{open:'Noch offen',proposed:'Vorgeschlagen',booked:'Gebucht'}},hotel_details:text('Hotel · Adresse, Check-in und Hinweise'),hotel_url:link('Hotelwebseite'),
  album_label:{label:'Bezeichnung des Fotoalbums',type:'text',max:120},album_url:link('Freigabelink zum Fotoalbum')
 };
-export const programFieldSpecs={category:{label:'Kategorie',type:'select',options:{activity:'Aktivität',food:'Essen & Trinken',hotel:'Unterkunft',travel:'Anreise',other:'Weitere Idee'}},title:{label:'Programmpunkt',type:'text',min:2,max:100},description:text('Beschreibung',1500),cost_label:{label:'Kosten / Hinweis',type:'text',max:120},website_url:link('Weitere Infos'),time_label:{label:'Hinweis zur Zeit',type:'text',max:80},schedule:{label:'Tag und Uhrzeit',type:'schedule'}};
+export const programFieldSpecs={plan_status:{label:"Planungsstand",type:"select",options:{idea:"Idee",alternative:"Alternative",planned:"Eingeplant",booked:"Gebucht"}},category:{label:'Kategorie',type:'select',options:{activity:'Aktivität',food:'Essen & Trinken',hotel:'Unterkunft',travel:'Anreise',other:'Weitere Idee'}},title:{label:'Programmpunkt',type:'text',min:2,max:100},description:text('Beschreibung',1500),cost_label:{label:'Kosten / Hinweis',type:'text',max:120},website_url:link('Weitere Infos'),time_label:{label:'Hinweis zur Zeit',type:'text',max:80},schedule:{label:'Tag und Uhrzeit',type:'schedule'}};
 const scheduleFields=['day_number','start_time','end_time','ends_next_day','time_label'];
 export function fieldPatch(kind,field,values){
  const spec=(kind==='event'?eventFieldSpecs:programFieldSpecs)[field];
