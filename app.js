@@ -1,9 +1,10 @@
 import {replaceKeepingOpenDetails} from './view-state.js?v=unified-20261011-2';
+import {wireImageFallbacks} from './image-fallback.js?v=mobile-20261011-1';
 import {createEventFieldEditor} from './event-field-editor.js?v=unified-20261011-2';
-import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=unified-20261011-2';
+import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=mobile-20261011-1';
 import {createMemberDirectory} from './member-directory.js?v=personal-20261011-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
-import {eventUrl,activeView,eventCover,coverImage,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=unified-20261011-2';
+import {eventUrl,activeView,eventCover,coverImage,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=mobile-20261011-1';
 import {fail} from './webmcp-core.js';
 import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=clarity-20261010-1';
 import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram,canEditProgram} from './trip-program.js?v=unified-20261011-2';
@@ -127,7 +128,7 @@ function eventCard(event,isPast=false) {
  return '<article class="event-card event-photo-card">'+coverImage(cover,'event-card-photo')+'<div class="event-card-content"><span class="tag '+esc(isPast?'past':event.status)+'">'+esc(isPast?'Rückblick':stateLabels[event.status])+'</span><h3>'+esc(event.title)+'</h3><div class="date-line">'+esc(dateRange(event.start_date,event.end_date))+'</div><p>'+esc(event.location||'Ort noch offen')+'</p><div class="card-links"><a class="button secondary" href="'+esc(eventWebsiteUrl(event))+'">'+(isPast?'Rückblick ansehen':'Veranstaltung ansehen')+' →</a>'+(event.status==='planning'?'<a class="text-link" href="'+esc(eventUrl(event,'termine'))+'">Termine abstimmen →</a>':'')+'</div>'+(cover?'<small class="cover-credit"><a href="'+esc(cover.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(cover.credit)+'</a></small>':'')+'</div></article>';
 }
 function wireEventImages() {
- document.querySelectorAll('.event-card-photo,.trip-hero-photo,.hub-background,.album-destination-cover').forEach(img=>img.addEventListener('error',()=>{img.hidden=true;},{once:true}));
+ wireImageFallbacks(document);
 }
 function renderHome() {
  const coming=events.filter(e=>e.status!=='saved'&&!past(e)).sort((a,b)=>(a.start_date||'9999').localeCompare(b.start_date||'9999'));
@@ -173,11 +174,12 @@ function wireVotes(container) {
 }
 async function voteDate(optionId,choice,button) {
  if(writeBusy)return;writeBusy=true;button.disabled=true;
+ const votingArea=button.closest('#event-dates')?'event-dates':'date-comparison';
  try {
   const r=await sb.from('group_date_votes').upsert({option_id:optionId,member_key:memberKey,choice},{onConflict:'option_id,member_key'}).select().single();
   if(r.error)throw r.error;await refresh();
   status('Deine Antwort wurde gespeichert.','date-vote-status');
-  const target=[...($('date-comparison')?.querySelectorAll('[data-choice]')||[])].find(b=>b.dataset.option===optionId&&b.dataset.choice===choice);target?.focus({preventScroll:true});
+  const target=[...($(votingArea)?.querySelectorAll('[data-choice]')||[])].find(b=>b.dataset.option===optionId&&b.dataset.choice===choice);target?.focus({preventScroll:true});
  } catch(e){status('Stimme nicht gespeichert: '+e.message,'date-vote-status');}
  finally{writeBusy=false;if(button.isConnected)button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
 }

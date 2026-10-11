@@ -40,7 +40,7 @@ const elements=new Map();
 const get=id=>{if(!elements.has(id))elements.set(id,{innerHTML:'',classList:{toggle(){}}});return elements.get(id);};
 const upcoming={id:'next',title:'Kufstein',status:'confirmed',start_date:'2026-11-28',end_date:'2026-11-29'};
 const proposed={id:'salzburg',title:'Salzburg',status:'planning'};
-const home={$:get,planningCards,photoCards,photoPageUrl,options:[],votes:[],memberKey:'self',people:[],todayVienna:()=> '2026-10-10',events:[upcoming,proposed],programItems:[{...photo,event_id:'salzburg'}],eventCover,coverImage,eventUrl,esc:value=>String(value??''),past:()=>false,dateRange:()=>'',stateLabels:{confirmed:'Termin steht',planning:'In Planung'},eventWebsiteUrl:eventUrl,document:{querySelectorAll:()=>[]}};
+const home={wireImageFallbacks:()=>{},$:get,planningCards,photoCards,photoPageUrl,options:[],votes:[],memberKey:'self',people:[],todayVienna:()=> '2026-10-10',events:[upcoming,proposed],programItems:[{...photo,event_id:'salzburg'}],eventCover,coverImage,eventUrl,esc:value=>String(value??''),past:()=>false,dateRange:()=>'',stateLabels:{confirmed:'Termin steht',planning:'In Planung'},eventWebsiteUrl:eventUrl,document:{querySelectorAll:()=>[]}};
 vm.createContext(home);vm.runInContext(homeSource,home);home.renderHome();
 assert.ok(get('next-event').innerHTML.includes('Kufstein'));
 assert.ok(!get('event-list').innerHTML.includes('Kufstein'));

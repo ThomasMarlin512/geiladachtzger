@@ -20,7 +20,7 @@ export function coverImage(cover,className,hero=false){
  if(!cover)return '';
  const variant=coverVariants[cover.image];
  const sizes=hero?'(max-width: 1028px) 100vw, 980px':'(max-width: 700px) calc(100vw - 48px), 520px';
- return '<img class="'+esc(className)+'" src="'+esc(variant?.src||cover.image)+'"'+(variant?' srcset="'+esc(variant.srcset)+'" sizes="'+sizes+'" width="'+variant.width+'" height="'+variant.height+'"':'')+' alt="" loading="'+(hero?'eager':'lazy')+'" decoding="async"'+(hero?' fetchpriority="high"':'')+'>';
+ return '<img class="'+esc(className)+'" src="'+esc(variant?.src||cover.image)+'"'+(variant?' srcset="'+esc(variant.srcset)+'" sizes="'+sizes+'" width="'+variant.width+'" height="'+variant.height+'" data-image-fallback="'+esc(cover.image)+'"':'')+' alt="" loading="'+(hero?'eager':'lazy')+'" decoding="async"'+(hero?' fetchpriority="high"':'')+'>';
 }
 const external=(url,label)=>httpsUrl(url)?'<a class="text-link" href="'+esc(httpsUrl(url))+'" target="_blank" rel="noopener noreferrer">'+esc(label)+' ↗</a>':'';
 const time=value=>value?.slice(0,5)||'';

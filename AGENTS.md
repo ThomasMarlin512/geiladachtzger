@@ -149,3 +149,9 @@ Explicit times sort first by time; clearly labelled morning/afternoon/evening
 hints may guide ordering when times are absent, without displaying invented times.
 cover-variants.js maps existing credited assets to generated responsive files;
 unknown/new cover URLs must retain their original-image fallback.
+
+Date votes keep focus in the originating calendar or comparison list after saving.
+Responsive destination covers carry data-image-fallback for their original image;
+image-fallback.js retries that HTTPS image once, removing srcset first. If both
+fail, retain the readable card. Kufstein uses the same handler for its layered
+header image and album cover; keep the visible source credit.

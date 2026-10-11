@@ -1,5 +1,5 @@
 import {escapeHtml as esc,httpsUrl} from './trip-program.js?v=unified-20261011-2';
-import {eventUrl,eventCover,coverImage,photoPageUrl} from './event-layout.js?v=unified-20261011-2';
+import {eventUrl,eventCover,coverImage,photoPageUrl} from './event-layout.js?v=mobile-20261011-1';
 export function formatPeriod(start,end){
  const format=value=>new Intl.DateTimeFormat('de-AT',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'));
  return format(start)+(start!==end?' – '+format(end):'');
