@@ -178,3 +178,11 @@ header image and album cover; keep the visible source credit.
 Activity cards use two wide columns on desktop and one on phones. Keep natural
 card heights and visible action buttons; never allocate a fixed number of
 subgrid rows for content that varies with permissions.
+
+Excursion pages start in reading mode with no pencils or editing placeholder
+spacing. The Bearbeitungsmodus toggle reveals existing authorized field pencils
+and edit actions; Bearbeitung beenden hides them again. Keep the mode local to
+the current page and reset it when edit permission is lost. Only show the toggle
+to the event organizer, administrator or a creator of a program item in this
+event. The mode never grants permissions. Keep voting, participation, adding
+ideas/links and confirmed deletion workflows independent of this display mode.

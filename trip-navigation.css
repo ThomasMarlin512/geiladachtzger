@@ -52,3 +52,13 @@ body[data-page=event] [id]{scroll-margin-top:150px}
 .activity-delete-dialog{box-sizing:border-box;width:min(520px,calc(100% - 32px));max-height:85dvh;overflow:auto;border:1px solid #759aae;border-radius:16px;padding:24px;background:#0b2637;color:#edf7fc}
 .activity-delete-dialog::backdrop{background:#00101bcc}.activity-delete-dialog h2{font-family:inherit;font-size:24px;margin:0 0 16px;overflow-wrap:anywhere}.activity-delete-dialog p{font-size:15px;line-height:1.6}.activity-delete-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}.activity-delete-actions button{min-height:44px;padding:12px 16px}.activity-delete-confirm{background:#71374a;color:#ffe2ea;border-color:#c68799}#activity-delete-error{color:#ffc9d2}.activity-delete-dialog button:focus-visible{outline:2px solid #fff;outline-offset:3px}
 @media(max-width:700px){.trip-layout #cards,body[data-page=event] #event-program .program-grid{grid-template-columns:1fr}.trip-layout #cards>article.card>.card-content{padding:18px}.trip-layout #cards .photo{height:200px}.activity-delete-actions button{flex:1}}
+
+/* Reading is the default; editing is an explicit, permission-scoped mode. */
+.edit-mode-bar{box-sizing:border-box;max-width:1028px;margin:0 auto;display:flex;justify-content:flex-end;padding:8px 24px}
+.edit-mode-bar[hidden]{display:none!important}
+.edit-mode-bar .edit-mode-toggle{box-sizing:border-box;width:auto;min-height:44px;margin:0;padding:9px 14px;border:1px solid #52758a;border-radius:9px;background:#102e3f;color:#d5e9f0;font:600 14px/1.3 system-ui,sans-serif;cursor:pointer}
+.edit-mode-bar .edit-mode-toggle[aria-pressed=true]{border-color:#8be4df;background:#1b3e50;color:#eafffc}
+.edit-mode-toggle:focus-visible{outline:2px solid #8be4df;outline-offset:3px}
+body[data-page=event]:not(.is-editing) [data-program-media],body[data-page=event]:not(.is-editing) [data-edit-event]{display:none!important}
+@media(max-width:700px){.edit-mode-bar{padding:6px 16px}}
+@media print{.edit-mode-bar,.field-pencil,.field-empty-hint,.edit-text-button,[data-program-media],[data-edit-event]{display:none!important}.has-field-pencil,.editable-text{padding-inline-end:0!important;min-height:0!important}}

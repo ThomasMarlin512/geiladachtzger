@@ -1,6 +1,6 @@
 import {replaceKeepingOpenDetails} from './view-state.js?v=unified-20261011-2';
 import {wireImageFallbacks} from './image-fallback.js?v=mobile-20261011-1';
-import {createEventFieldEditor} from './event-field-editor.js?v=unified-20261011-2';
+import {createEventFieldEditor} from './event-field-editor.js?v=edit-mode-20261011-1';
 import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=compact-20261011-1';
 import {createMemberDirectory} from './member-directory.js?v=compact-20261011-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
@@ -189,7 +189,7 @@ async function voteDate(optionId,choice,button) {
 }
 function renderEvent() {
  const event=events.find(e=>e.id===currentEventId);
- if(!event){$('event-detail').innerHTML='<div class="empty">Diese Veranstaltung wurde nicht gefunden oder bereits gelöscht. <a href="index.html">Zur Hauptseite</a></div>';$('event-content').hidden=true;$('event-tabs').hidden=true;return;}
+ if(!event){fieldEditor?.mount();$('event-detail').innerHTML='<div class="empty">Diese Veranstaltung wurde nicht gefunden oder bereits gelöscht. <a href="index.html">Zur Hauptseite</a></div>';$('event-content').hidden=true;$('event-tabs').hidden=true;return;}
  $('event-content').hidden=false;$('event-tabs').hidden=false;
  document.title=event.title+' · Geiladachtzger';
  const organizer=event.created_by_key===memberKey;
@@ -262,7 +262,7 @@ function readDates() {
  return dates.filter((d,i)=>dates.findIndex(x=>x.start_date===d.start_date&&x.end_date===d.end_date)===i);
 }
 function wireForms() {
- if(currentEventId)fieldEditor=createEventFieldEditor({client:()=>sb,canEdit:(kind,id)=>kind==='program'?canEditProgram(programItems.find(i=>i.id===id),memberKey,canManageTexts):canManageTexts,event:()=>events.find(e=>e.id===currentEventId),items:()=>programItems,onBusy:value=>{writeBusy=value;if(!value&&$('own-attendance'))$('own-attendance').disabled=false;},onSaved:async(kind,row)=>{if(kind==='event')events=events.map(e=>e.id===row.id?row:e);else programItems=sortProgram(programItems.map(i=>i.id===row.id?row:i));renderEvent();status('Gespeichert – für alle sichtbar.');}});
+ if(currentEventId)fieldEditor=createEventFieldEditor({client:()=>sb,canEnterEditMode:()=>canManageTexts||events.some(e=>e.id===currentEventId&&e.created_by_key===memberKey)||programItems.some(i=>i.event_id===currentEventId&&canEditProgram(i,memberKey,canManageTexts)),canEdit:(kind,id)=>kind==='program'?canEditProgram(programItems.find(i=>i.id===id),memberKey,canManageTexts):canManageTexts,event:()=>events.find(e=>e.id===currentEventId),items:()=>programItems,onBusy:value=>{writeBusy=value;if(!value&&$('own-attendance'))$('own-attendance').disabled=false;},onSaved:async(kind,row)=>{if(kind==='event')events=events.map(e=>e.id===row.id?row:e);else programItems=sortProgram(programItems.map(i=>i.id===row.id?row:i));renderEvent();status('Gespeichert – für alle sichtbar.');}});
  $('new-event-button')?.addEventListener('click',()=>{
   if(!createdDraftId){$('new-event-form').reset();$('new-date-options').innerHTML='';addDateRow();status('','create-status');}
   $('event-dialog').showModal();
