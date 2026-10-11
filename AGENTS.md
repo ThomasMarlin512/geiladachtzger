@@ -21,7 +21,10 @@ Destination covers and structured travel/hotel/album fields live in group_events
 An explicit cover wins; otherwise use the first existing program photo. Always
 show photo credits/source links and retain a usable fallback for missing images.
 
-Only the event creator edits event metadata or saves/resumes/deletes an event.
+The event creator edits event metadata and saves/resumes/deletes an event.
+The existing group administrator also has small field pencils on all shared
+event pages, through the narrow save_event_content_fields RPC. This does not
+grant lifecycle or ownership changes, or alter existing member permissions.
 Saved events have status=saved, appear separately on the hub and retain all votes,
 program and dates. Resume preserves an already chosen date. A delete needs an
 explicit typed-title confirmation explaining cascaded data loss; never delete
@@ -106,3 +109,11 @@ highlight Fotos or another destination. Use aria-current=location for the hub
 and scrolling trip sections, updating on scroll; separate event views use
 aria-current=page. All primary navigation links share the same inactive and
 active appearance. Keep visible keyboard focus indicators independent of this.
+
+All new and existing shared events inherit field pencils from event-field-editor.js.
+Show these additional controls only to the administrator returned by the server.
+Use canonical group_events and group_program_items values, not duplicate text
+overrides. Keep the 44px touch target with the small icon at the top right.
+Save only the selected field or atomic schedule group and compare the original
+values on the server. Preserve drafts after errors, and keep saved descriptions
+and times consistent between program cards, itinerary and the hub.

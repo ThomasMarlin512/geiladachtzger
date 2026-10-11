@@ -1,10 +1,11 @@
+import {createEventFieldEditor} from './event-field-editor.js?v=20261011-1';
 import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=clarity-20261010-1';
 import {createMemberDirectory} from './member-directory.js?v=clarity-20261010-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
-import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=clarity-20261010-1';
+import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=fields-20261011-1';
 import {fail} from './webmcp-core.js';
 import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=clarity-20261010-1';
-import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram} from './trip-program.js?v=20261010-3';
+import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram} from './trip-program.js?v=fields-20261011-1';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const URL = 'https://rzzipqdozabuxrmoxhlw.supabase.co';
@@ -12,7 +13,7 @@ const KEY = 'sb_publishable_4MsQNsSWj2VXmONSNim-zg__T2QeLV0';
 let sb, user, member, memberKey, busy = false, refreshBusy = false, timer;
 let events = [], options = [], votes = [], attendance = [], people = [], directory = [];
 let programItems=[],programVotes=[],programLinks=[],linkItemId=null,mediaItemId=null,previewBusy=false;
-let createdDraftId = null, writeBusy = false;
+let createdDraftId = null, writeBusy = false, canManageTexts = false, fieldEditor = null;
 const membersUi=createMemberDirectory({client:()=>sb,onIdentity:nickname=>{if(member){member.display_name=nickname;$('member-name').textContent=nickname;}},onSaved:()=>refresh()});
 const currentEventId = new URLSearchParams(location.search).get('id');
 const labels = {yes:'✓ Dabei', maybe:'? Unsicher', no:'✕ Nicht dabei'};
@@ -71,6 +72,7 @@ async function enter() {
  const key=await sb.from('trip_attendance').select('roster_key').eq('user_id',user.id).single();
  if(key.error)throw key.error;
  member=m.data;memberKey=key.data.roster_key;
+ if(currentEventId){const permissions=await sb.rpc('get_group_member_directory');canManageTexts=!permissions.error&&permissions.data?.can_manage===true;}
  const returnParams=new URLSearchParams(location.search);
  if(document.body.dataset.page==='home'&&returnParams.get('return')==='profil'){
   const event=returnParams.get('event');
@@ -178,8 +180,8 @@ function renderEvent() {
  document.title=event.title+' · Geiladachtzger';
  const organizer=event.created_by_key===memberKey;
  const url=safeUrl(event.website_url),heroPhoto=eventCover(event,programItems);
- $('event-detail').innerHTML='<header class="trip-hero">'+(heroPhoto?'<img class="trip-hero-photo" src="'+esc(heroPhoto.image)+'" alt="" aria-hidden="true">':'')+'<div class="trip-hero-content"><span class="tag '+esc(event.status)+'">'+esc(past(event)?'Rückblick':stateLabels[event.status])+'</span><h1 class="event-title">'+esc(event.title)+'</h1><p>'+esc(dateRange(event.start_date,event.end_date))+' · '+esc(event.location||'Ort noch offen')+'</p></div>'+(heroPhoto?'<a class="hero-credit" href="'+esc(heroPhoto.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(heroPhoto.credit)+'</a>':'')+'</header>';
- $('trip-information').innerHTML=(event.description?'<p class="event-description">'+esc(event.description)+'</p>':'<p class="subtle">Die Beschreibung eurer Reise kann noch ergänzt werden.</p>')+(url?'<p><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Weitere Reiseinfos ↗</a></p>':'');
+ $('event-detail').innerHTML='<header class="trip-hero">'+(heroPhoto?'<img class="trip-hero-photo" src="'+esc(heroPhoto.image)+'" alt="" aria-hidden="true">':'')+'<div class="trip-hero-content"><span class="tag '+esc(event.status)+'">'+esc(past(event)?'Rückblick':stateLabels[event.status])+'</span><h1 class="event-title" data-event-field="title">'+esc(event.title)+'</h1><p>'+esc(dateRange(event.start_date,event.end_date))+' · <span data-event-field="location">'+esc(event.location||'Ort noch offen')+'</span></p></div>'+(heroPhoto?'<a class="hero-credit" href="'+esc(heroPhoto.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(heroPhoto.credit)+'</a>':'')+'</header>';
+ $('trip-information').innerHTML=(event.description?'<p class="event-description preserve-lines" data-event-field="description">'+esc(event.description)+'</p>':'<p class="subtle" data-event-field="description">Die Beschreibung eurer Reise kann noch ergänzt werden.</p>')+'<div data-event-field="website_url">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Weitere Reiseinfos ↗</a>':'')+'</div>';
  $('travel-details').innerHTML=travelCards(event);
  $('travel-timeline').innerHTML=travelTimeline(event);
  $('event-photos').innerHTML=albumCard(event,organizer);
@@ -199,7 +201,7 @@ function renderEvent() {
  $('extra-start').min=todayVienna();$('extra-end').min=$('extra-start').value||todayVienna();
  if(location.hash==='#date-suggestion')$('date-suggestion').open=true;
  document.querySelectorAll('[data-edit-event]').forEach(button=>{button.onclick=()=>openEventSettings(button.dataset.editEvent);});
- wireEventImages();
+ wireEventImages();fieldEditor?.mount();
 }
 function openEventSettings(section='general') {
  if(writeBusy)return;
@@ -247,6 +249,7 @@ function readDates() {
  return dates.filter((d,i)=>dates.findIndex(x=>x.start_date===d.start_date&&x.end_date===d.end_date)===i);
 }
 function wireForms() {
+ if(currentEventId)fieldEditor=createEventFieldEditor({client:()=>sb,canEdit:()=>canManageTexts,event:()=>events.find(e=>e.id===currentEventId),items:()=>programItems,onBusy:value=>{writeBusy=value;if(!value&&$('own-attendance'))$('own-attendance').disabled=false;},onSaved:async(kind,row)=>{if(kind==='event')events=events.map(e=>e.id===row.id?row:e);else programItems=sortProgram(programItems.map(i=>i.id===row.id?row:i));renderEvent();status('Gespeichert – für alle sichtbar.');}});
  $('new-event-button')?.addEventListener('click',()=>{
   if(!createdDraftId){$('new-event-form').reset();$('new-date-options').innerHTML='';addDateRow();status('','create-status');}
   $('event-dialog').showModal();
