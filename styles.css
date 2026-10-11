@@ -83,3 +83,13 @@ nav .home-nav-link:hover{background:#164052}
 
 /* Field pencils are installed only after administrator authorization. */
 .has-field-pencil{position:relative;padding-inline-end:46px!important;min-height:44px;box-sizing:border-box}span.has-field-pencil{display:inline-block}.field-pencil{position:absolute;inset-block-start:0;inset-inline-end:0;width:44px;height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center;padding:0;margin:0;background:transparent;border:0;border-radius:8px;color:#a9c5cf;line-height:1;box-shadow:none;cursor:pointer}.field-pencil:hover{background:#8ce5df12;color:#9cf3ed}.field-pencil:focus-visible{outline:2px solid #9cf3ed;outline-offset:1px}.field-pencil svg{pointer-events:none}.field-empty-hint{font-size:14px;color:#a9c5cf}.event-field-dialog{width:min(600px,calc(100% - 28px));max-height:90dvh;overflow:auto;padding:22px;box-sizing:border-box}.event-field-dialog h2{margin-top:0}.event-field-dialog input,.event-field-dialog textarea,.event-field-dialog select{font-size:16px}.field-editor-inputs{display:grid;gap:12px}.field-editor-actions{display:flex;flex-wrap:wrap;gap:10px}.field-editor-error{color:#ffc5bf}.program-links>[data-program-field]{width:100%}.event-description,.program-description,.itinerary-description{white-space:pre-line}@media print{.field-pencil,.event-field-dialog,.field-empty-hint{display:none!important}.has-field-pencil{padding-inline-end:0!important;min-height:0!important}}
+
+/* Explicit image layers avoid negative stacking levels in mobile browsers. */
+.trip-hero-photo,.hub-background,.event-card-photo,.album-destination-cover{z-index:0;pointer-events:none}
+.trip-hero:after,.hub-hero:after,.event-photo-card:after,.hub-album-card:after{z-index:1;pointer-events:none}
+.trip-hero-content,.hub-hero .hero-inner,.event-card-content,.hub-album-content{position:relative;z-index:2}
+.hero-credit,.hub-credit{z-index:3}
+.trip-hero:after{background:linear-gradient(0deg,rgba(3,23,37,.86) 0%,rgba(3,23,37,.48) 45%,rgba(3,23,37,.12) 100%)}
+.trip-hero .event-title,.trip-hero-content p{text-shadow:0 2px 12px #00111bcc}
+.hub-hero:after{background:linear-gradient(90deg,rgba(4,25,39,.9),rgba(4,25,39,.35))}
+.hub-album-card:after{background:linear-gradient(90deg,rgba(7,27,44,.85),rgba(7,27,44,.35))}

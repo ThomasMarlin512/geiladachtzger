@@ -121,3 +121,9 @@ overrides. Keep the 44px touch target with the small icon at the top right.
 Save only the selected field or atomic schedule group and compare the original
 values on the server. Preserve drafts after errors, and keep saved descriptions
 and times consistent between program cards, itinerary and the hub.
+
+Keep destination title images visible with explicit non-negative layers: photo 0,
+overlay 1, content 2 and credits 3. Avoid negative z-index on cover images.
+The current destination cover files are mirrored in assets/covers with their
+original photo credits and official source URLs stored in group_events. Prefer
+an explicit event cover, so editing a program photo does not remove the title image.
