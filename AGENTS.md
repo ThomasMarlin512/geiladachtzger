@@ -114,8 +114,8 @@ on the hub inside a collapsed details section; direct #mitglieder links open it.
 Hide the past-events section when empty. Keep archives compact.
 
 Date voting uses a direct comparison list with weekdays, own-answer progress,
-yes/maybe/no controls, and group counts. Calendar is an optional collapsed view
-on the same dates subpage. Highlight leaders only after a positive vote, preserve
+yes/maybe/no controls, and group counts. Calendar is an alternative view on the same dates subpage, switched with
+Liste/Kalender; show only one voting view at a time. Highlight leaders only after a positive vote, preserve
 ties, and never confirm a date automatically. Ignore expired dates in progress
 and leaders. Only the organizer finalizes dates. No personal-calendar or birthday
 availability is implied by these member votes.
@@ -180,9 +180,23 @@ card heights and visible action buttons; never allocate a fixed number of
 subgrid rows for content that varies with permissions.
 
 Excursion pages start in reading mode with no pencils or editing placeholder
-spacing. The Bearbeitungsmodus toggle reveals existing authorized field pencils
-and edit actions; Bearbeitung beenden hides them again. Keep the mode local to
+spacing. The compact Bearbeiten toggle lives beside the settings gear in the upper
+navigation and reveals authorized field pencils and edit actions; Fertig hides
+them again. Use an explicit Bearbeitungsmodus aria-label and aria-pressed state. Keep the mode local to
 the current page and reset it when edit permission is lost. Only show the toggle
 to the event organizer, administrator or a creator of a program item in this
 event. The mode never grants permissions. Keep voting, participation, adding
 ideas/links and confirmed deletion workflows independent of this display mode.
+
+Use date-range-picker.js for adding dates to an existing event and collecting
+optional ranges when proposing a new event. Calendar clicks choose beginning
+and end; also allow direct native date entry. Start at the existing proposal
+month, label weekdays and duration, allow single-day and cross-month ranges,
+and reject past starts, invalid ranges and exact duplicates. Shortcuts choose
+Do–So/Fr–So/Sa–So explicitly; they never write automatically. Keep drafts after
+failed saves, disable date controls while saving and retain keyboard focus on
+refresh. New-event saving includes a complete current range even if it has not
+yet been added to the collected list. Keep the maximum of eight draft ranges.
+Voting calendars initially select an unanswered future option, skip empty
+months, and expose overlapping options individually. Count one vote per member.
+Keep the chosen option after voting and preserve creator-only confirmation.

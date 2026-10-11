@@ -1,12 +1,13 @@
+import {mountDateRangePicker,describeRange} from './date-range-picker.js?v=calendar-ux-20261011-1';
 import {replaceKeepingOpenDetails} from './view-state.js?v=unified-20261011-2';
 import {wireImageFallbacks} from './image-fallback.js?v=mobile-20261011-1';
-import {createEventFieldEditor} from './event-field-editor.js?v=edit-mode-20261011-1';
+import {createEventFieldEditor} from './event-field-editor.js?v=calendar-ux-20261011-1';
 import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=compact-20261011-1';
 import {createMemberDirectory} from './member-directory.js?v=compact-20261011-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
 import {eventUrl,activeView,eventCover,coverImage,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=compact-20261011-1';
 import {fail} from './webmcp-core.js';
-import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=clarity-20261010-1';
+import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=calendar-ux-20261011-1';
 import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram,canEditProgram} from './trip-program.js?v=delete-20261011-1';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -17,7 +18,7 @@ let events = [], options = [], votes = [], attendance = [], people = [], directo
 let programItems=[],programVotes=[],programLinks=[],linkItemId=null,mediaItemId=null,previewBusy=false;
 const removedProgramIds=new Set();
 let deletingProgram=null;
-let createdDraftId = null, writeBusy = false, canManageTexts = false, fieldEditor = null;
+let createdDraftId = null, writeBusy = false, canManageTexts = false, fieldEditor = null, extraDatePicker = null, newDatePicker = null;
 const membersUi=createMemberDirectory({client:()=>sb,onIdentity:nickname=>{if(member){member.display_name=nickname;$('member-name').textContent=nickname;}},onSaved:()=>refresh()});
 const currentEventId = new URLSearchParams(location.search).get('id');
 const labels = {yes:'✓ Dabei', maybe:'? Unsicher', no:'✕ Nicht dabei'};
@@ -152,7 +153,7 @@ function renderHome() {
  wireEventImages();
 }
 function dateCards(event,organizer,selectedId=null) {
- const eventOptions=options.filter(o=>o.event_id===event.id);
+ const eventOptions=options.filter(o=>o.event_id===event.id&&o.end_date>=todayVienna());
  const dates=eventOptions.filter(o=>!selectedId||o.id===selectedId).sort((a,b)=>a.start_date.localeCompare(b.start_date)||a.end_date.localeCompare(b.end_date));
  if(!dates.length)return '<div class="empty">Noch keine Terminvorschläge. Schlag oben einen Zeitraum vor.</div>';
  const summary=summarizeDates(eventOptions,votes,memberKey,people,todayVienna());
@@ -166,11 +167,12 @@ function dateCards(event,organizer,selectedId=null) {
   return '<article class="date-card comparison-row'+(best?' date-leading':'')+'"><div class="date-info">'+(best?'<span class="tag confirmed">'+(summary.best.length>1?'Gleichauf':'Bisher passendster Termin')+'</span>':'')+'<strong>'+esc(label)+'</strong><small>'+count.yes+' passt · '+count.maybe+' vielleicht · '+count.no+' geht nicht · '+count.pending+' offen</small><p class="own-date-answer">'+(closed?'Abstimmung geschlossen':own?'Deine Antwort: '+dateLabels[own]:'Deine Antwort fehlt noch')+'</p></div><div class="date-actions">'+Object.entries(dateLabels).map(([choice,text])=>'<button type="button" data-option="'+esc(option.id)+'" data-choice="'+choice+'" class="'+(own===choice?'selected '+choice:'')+'" '+(closed?'disabled':'')+' aria-pressed="'+(own===choice)+'" aria-label="'+esc(text+' · '+label)+'">'+text+'</button>').join('')+'</div><details class="vote-people" data-date-detail="'+esc(option.id)+'"><summary>Wer kann mit?</summary>'+Object.entries(dateLabels).map(([choice,text])=>'<p><b>'+text+':</b> '+(rows.filter(v=>v.choice===choice).map(v=>esc(nameFor(v.member_key))).join(', ')||'Noch niemand')+'</p>').join('')+'</details>'+(organizer&&!closed?'<button type="button" class="quiet finalize" data-finalize="'+esc(option.id)+'">Diesen Termin festlegen</button>':'')+'</article>';
  }).join('');
 }
-function dateComparison(event,organizer){
+function dateProgress(event){
  const s=summarizeDates(options.filter(o=>o.event_id===event.id),votes,memberKey,people,todayVienna());
  const leading=s.best.length===1?'Bisher passendster Termin: '+formatPeriod(s.best[0].start_date,s.best[0].end_date):s.best.length>1?s.best.length+' Termine liegen gleichauf.':'Noch kein Termin mit Zusagen.';
- return '<div class="poll-progress"><strong>'+(s.rows.length?s.answered+' von '+s.rows.length+' Zeiträumen beantwortet':'Noch kein zukünftiger Zeitraum')+'</strong><p>'+esc(leading)+'</p><small>Die Markierung richtet sich nach Zusagen, dann nach weniger Absagen und mehr „Vielleicht“. Der Ersteller legt den Termin fest.</small></div><div class="comparison-list">'+dateCards(event,organizer)+'</div>';
+ return '<div class="poll-progress"><strong>'+(s.rows.length?s.answered+' von '+s.rows.length+' Zeiträumen beantwortet':'Noch kein zukünftiger Zeitraum')+'</strong><p>'+esc(leading)+'</p><div class="poll-progress-track" role="img" aria-label="'+s.answered+' von '+s.rows.length+' beantwortet"><span style="width:'+Math.round(100*s.answered/(s.rows.length||1))+'%"></span></div></div>';
 }
+function dateComparison(event,organizer){return '<div class="comparison-list">'+dateCards(event,organizer)+'</div>';}
 function wireVotes(container) {
  wireVotingCalendars(container,()=>{if(document.body.dataset.page==='home')renderHome();else renderEvent();},()=>writeBusy);
  container.querySelectorAll('[data-choice]').forEach(button=>button.addEventListener('click',()=>voteDate(button.dataset.option,button.dataset.choice,button)));
@@ -204,8 +206,9 @@ function renderEvent() {
  for(const [name,id] of Object.entries({uebersicht:'event-overview',programm:'event-program',gruppe:'teilnehmer',termine:'event-dates-section',fotos:'event-photos'})) $(id).hidden=name!==view;
  document.querySelectorAll('[data-event-view]').forEach(link=>{const name=link.dataset.eventView;link.href=eventUrl(event,name);if(name===view)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
  if(view==='termine'&&event.status==='planning'){
+  $('date-progress').innerHTML=dateProgress(event);
   replaceKeepingOpenDetails($('date-comparison'),dateComparison(event,organizer));wireVotes($('date-comparison'));
-  replaceKeepingOpenDetails($('event-dates'),votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,organizer,id)));wireVotes($('event-dates'));
+  replaceKeepingOpenDetails($('event-dates'),votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,organizer,id),todayVienna()));wireVotes($('event-dates'));
  }else {$('event-dates').replaceChildren();$('date-comparison').replaceChildren();}
  renderProgram(event);renderPeople(event);
  $('organizer-section').hidden=!organizer;$('edit-overview').hidden=!organizer;
@@ -213,7 +216,7 @@ function renderEvent() {
  $('extra-start').min=todayVienna();$('extra-end').min=$('extra-start').value||todayVienna();
  if(location.hash==='#date-suggestion')$('date-suggestion').open=true;
  document.querySelectorAll('[data-edit-event]').forEach(button=>{button.onclick=()=>openEventSettings(button.dataset.editEvent);});
- wireEventImages();fieldEditor?.mount();
+ wireEventImages();fieldEditor?.mount();extraDatePicker?.refresh();
 }
 function openEventSettings(section='general') {
  if(writeBusy)return;
@@ -248,27 +251,42 @@ async function setAttendance(eventId,choice) {
  }catch(e){renderPeople(events.find(x=>x.id===eventId));status('Teilnahme nicht gespeichert: '+e.message,'attendance-status');}
  finally{writeBusy=false;if($('own-attendance'))$('own-attendance').disabled=false;}
 }
+function draftDates(){return [...$('new-date-options').children].map(row=>({start_date:row.querySelector('.option-start').value,end_date:row.querySelector('.option-end').value}));}
 function addDateRow(start='',end='') {
- const div=document.createElement('div');div.className='date-option';
- div.innerHTML='<div><label>Von<input class="option-start" type="date"></label></div><div><label>Bis<input class="option-end" type="date"></label></div><button class="quiet" type="button" aria-label="Terminvorschlag entfernen">✕</button>';
+ if(!start||!end)return;
+ const dates=draftDates();
+ if(dates.some(d=>d.start_date===start&&d.end_date===end))return;
+ if(dates.length>=8)throw Error('Bis zu acht Zeiträume sind möglich.');
+ const div=document.createElement('div');div.className='draft-date';
+ div.innerHTML='<input class="option-start" type="hidden"><input class="option-end" type="hidden"><span>'+esc(describeRange(start,end))+'</span><button class="quiet" type="button" aria-label="Terminvorschlag entfernen: '+esc(describeRange(start,end))+'">✕</button>';
  div.querySelector('.option-start').value=start;div.querySelector('.option-end').value=end;
- div.querySelector('.option-start').addEventListener('change',e=>{const input=div.querySelector('.option-end');input.min=e.target.value;if(!input.value||input.value<e.target.value)input.value=e.target.value;});
- div.querySelector('button').addEventListener('click',()=>{if($('new-date-options').children.length>1)div.remove();});
+ div.querySelector('button').addEventListener('click',()=>{div.remove();newDatePicker?.refresh();});
  $('new-date-options').append(div);
 }
 function readDates() {
- const dates=[...$('new-date-options').children].map(row=>({start_date:row.querySelector('.option-start').value,end_date:row.querySelector('.option-end').value})).filter(d=>d.start_date||d.end_date);
+ const dates=draftDates().filter(d=>d.start_date||d.end_date),pending=newDatePicker?.getRange();
+ if(pending?.start||pending?.end){
+  if(!pending.valid)throw Error('Bitte im Kalender auch das Ende auswählen oder die Auswahl zurücksetzen.');
+  if(!pending.duplicate)dates.push({start_date:pending.start,end_date:pending.end});
+ }
+ if(dates.length>8)throw Error('Bis zu acht Zeiträume sind möglich.');
  if(dates.some(d=>!d.start_date||!d.end_date||d.end_date<d.start_date||d.start_date<todayVienna()))throw Error('Bitte gültige Termine auswählen.');
  return dates.filter((d,i)=>dates.findIndex(x=>x.start_date===d.start_date&&x.end_date===d.end_date)===i);
 }
 function wireForms() {
+ extraDatePicker=mountDateRangePicker($('extra-date-picker'),{startInput:$('extra-start'),endInput:$('extra-end'),today:todayVienna,getOptions:()=>options.filter(o=>o.event_id===currentEventId&&o.end_date>=todayVienna()),onChange:s=>{$('add-option-submit').disabled=!s.valid||s.duplicate||s.busy;}});
+ newDatePicker=mountDateRangePicker($('new-date-picker'),{startInput:$('new-start'),endInput:$('new-end'),today:todayVienna,getOptions:()=>draftDates(),onChange:s=>{$('add-date-option').disabled=!s.valid||s.duplicate||draftDates().length>=8;}});
+ document.querySelectorAll('button[data-date-view]').forEach(button=>button.addEventListener('click',()=>{
+  $('event-dates-section').dataset.dateView=button.dataset.dateView;
+  document.querySelectorAll('button[data-date-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+ }));
  if(currentEventId)fieldEditor=createEventFieldEditor({client:()=>sb,canEnterEditMode:()=>canManageTexts||events.some(e=>e.id===currentEventId&&e.created_by_key===memberKey)||programItems.some(i=>i.event_id===currentEventId&&canEditProgram(i,memberKey,canManageTexts)),canEdit:(kind,id)=>kind==='program'?canEditProgram(programItems.find(i=>i.id===id),memberKey,canManageTexts):canManageTexts,event:()=>events.find(e=>e.id===currentEventId),items:()=>programItems,onBusy:value=>{writeBusy=value;if(!value&&$('own-attendance'))$('own-attendance').disabled=false;},onSaved:async(kind,row)=>{if(kind==='event')events=events.map(e=>e.id===row.id?row:e);else programItems=sortProgram(programItems.map(i=>i.id===row.id?row:i));renderEvent();status('Gespeichert – für alle sichtbar.');}});
  $('new-event-button')?.addEventListener('click',()=>{
-  if(!createdDraftId){$('new-event-form').reset();$('new-date-options').innerHTML='';addDateRow();status('','create-status');}
+  if(!createdDraftId){$('new-event-form').reset();$('new-date-options').innerHTML='';newDatePicker?.reset();status('','new-date-feedback');status('','create-status');}
   $('event-dialog').showModal();
  });
  $('close-dialog')?.addEventListener('click',()=>$('event-dialog').close());
- $('add-date-option')?.addEventListener('click',()=>{if($('new-date-options').children.length<8)addDateRow();});
+ $('add-date-option')?.addEventListener('click',()=>{const s=newDatePicker?.getRange();if(!s?.valid||s.duplicate||draftDates().length>=8)return;addDateRow(s.start,s.end);newDatePicker.clear();status('Zeitraum übernommen. Du kannst einen weiteren auswählen.','new-date-feedback');});
  $('new-event-form')?.addEventListener('submit',createEvent);
  $('edit-event-form')?.addEventListener('submit',editEvent);
  $('close-event-settings')?.addEventListener('click',()=>{if(!writeBusy)$('event-settings-dialog').close();});
@@ -294,7 +312,7 @@ function wireForms() {
  $('media-image')?.addEventListener('input',updateMediaPreview);
  $('clear-program-photo')?.addEventListener('click',()=>{$('media-image').value='';updateMediaPreview();});
  $('program-media-dialog')?.addEventListener('cancel',e=>{if(previewBusy||writeBusy)e.preventDefault();});
- $('extra-start')?.addEventListener('change',()=>{const start=$('extra-start').value;$('extra-end').min=start||todayVienna();if(start&&(!$('extra-end').value||$('extra-end').value<start))$('extra-end').value=start;});
+
 }
 async function createEvent(e) {
  e.preventDefault();if(writeBusy)return;writeBusy=true;const saveMode=e.submitter?.value==='saved'?'saved':'planning';$('new-event-form').querySelectorAll('[type=submit]').forEach(b=>b.disabled=true);status('Wird gespeichert …','create-status');
@@ -371,7 +389,7 @@ async function deleteEvent(e) {
 }
 async function addOption(e) {
  e.preventDefault();if(writeBusy)return;writeBusy=true;
- const button=e.target.querySelector('button');button.disabled=true;
+ const button=e.target.querySelector('[type=submit]');button.disabled=true;extraDatePicker?.setBusy(true);
  try {
   const start=$('extra-start').value,end=$('extra-end').value;
   if(!start||!end||end<start)throw Error('Bitte gültige Termine auswählen.');
@@ -381,9 +399,9 @@ async function addOption(e) {
   const r=await sb.from('group_event_dates').insert({event_id:currentEventId,start_date:start,end_date:end}).select().single();
   if(r.error){if(r.error.code==='23505')throw Error('Dieser Zeitraum steht bereits zur Abstimmung.');throw r.error;}
   selectCalendarDate(currentEventId,r.data.id,start);
-  e.target.reset();await refresh();status('Termin hinzugefügt. Alle können jetzt darüber abstimmen.','extra-status');
+  e.target.reset();extraDatePicker?.clear();await refresh();status('Termin hinzugefügt. Alle können jetzt darüber abstimmen.','extra-status');
  }catch(e){status('Nicht gespeichert: '+e.message,'extra-status');}
- finally{writeBusy=false;button.disabled=false;if($('own-attendance'))$('own-attendance').disabled=false;}
+ finally{writeBusy=false;extraDatePicker?.setBusy(false);if($('own-attendance'))$('own-attendance').disabled=false;}
 }
 
 function renderProgram(event) {
@@ -545,10 +563,10 @@ installHubTools({
  },
  prepare:document.body.dataset.page==='home'?input=>{
   if(createdDraftId || $('event-dialog').open)fail('DRAFT_OPEN','Ein Veranstaltungsentwurf ist bereits offen. Bitte zuerst speichern oder schließen.');
-  $('new-event-form').reset();$('new-date-options').innerHTML='';
+  $('new-event-form').reset();$('new-date-options').innerHTML='';newDatePicker?.reset();
   $('event-title').value=input.title.trim();$('event-kind').value=input.kind;
   $('event-location').value=input.location||'';$('event-description').value=input.description||'';
-  input.dates.forEach(d=>addDateRow(d.start_date,d.end_date));
+  input.dates.forEach(d=>addDateRow(d.start_date,d.end_date));newDatePicker?.refresh();
   status('Entwurf vorbereitet – noch nicht gespeichert.','create-status');
   $('event-dialog').showModal();$('event-title').focus();
  }:null

@@ -43,7 +43,7 @@ export function createEventFieldEditor({client,canEdit,event,items,onSaved,onBus
   const allowed=!!event()&&(canEnterEditMode?canEnterEditMode():canEdit('event',event().id)||items().some(item=>canEdit('program',item.id)));
   if(!allowed){editing=false;if(dialog.open&&!saving)dialog.close();}
   if(bar)bar.hidden=!allowed;
-  if(toggle){toggle.hidden=!allowed;toggle.setAttribute('aria-pressed',String(editing));toggle.textContent=editing?'Bearbeitung beenden':'Bearbeitungsmodus';}
+  if(toggle){toggle.hidden=!allowed;toggle.setAttribute('aria-pressed',String(editing));toggle.innerHTML=editing?'<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false"><path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Fertig</span>':'<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" focusable="false"><path d="m15 5 4 4M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Bearbeiten</span>';toggle.setAttribute('aria-label',editing?'Bearbeitung beenden':'Bearbeitungsmodus einschalten');toggle.title=toggle.getAttribute('aria-label');}
   document.body.classList.toggle('is-editing',editing);
  }
  toggle?.addEventListener('click',()=>{if(saving||dialog.open)return;editing=!editing;mount();});

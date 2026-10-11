@@ -25,14 +25,17 @@ const html=readFileSync(new URL('../event.html',import.meta.url),'utf8');
 for(const field of detailFields)assert.ok(html.includes('id="edit-'+field+'"'),'editable field '+field);
 // New events can be saved without dates; partly entered and past dates are rejected.
 const app=readFileSync(new URL('../app.js',import.meta.url),'utf8');
-const readDates=app.slice(app.indexOf('function readDates()'),app.indexOf('function wireForms()'));
-let dates=[];const context={$:()=>({children:dates.map(d=>({querySelector:selector=>({value:selector==='.option-start'?d[0]:d[1]})}))}),todayVienna:()=> '2026-10-10'};
+const readDates=app.slice(app.indexOf('function draftDates()'),app.indexOf('function wireForms()'));
+let dates=[];const context={newDatePicker:null,$:()=>({children:dates.map(d=>({querySelector:selector=>({value:selector==='.option-start'?d[0]:d[1]})}))}),todayVienna:()=> '2026-10-10'};
 vm.createContext(context);vm.runInContext(readDates,context);
 assert.equal(context.readDates().length,0);
 dates=[['','']];assert.equal(context.readDates().length,0);
 dates=[['2027-09-02','']];assert.throws(()=>context.readDates());
 dates=[['2026-01-01','2026-01-02']];assert.throws(()=>context.readDates());
 dates=[['2027-09-02','2027-09-05'],['2027-09-02','2027-09-05']];assert.equal(context.readDates().length,1);
+dates=[];context.newDatePicker={getRange:()=>({start:'2027-09-02',end:'',valid:false})};assert.throws(()=>context.readDates());
+context.newDatePicker={getRange:()=>({start:'2027-09-02',end:'2027-09-05',valid:true,duplicate:false})};assert.equal(context.readDates().length,1,'Current complete selection is included on save');
+context.newDatePicker=null;
 console.log('PASS: shared views, paused calendars, safe covers and album links, separate travel fields and optional dates');
 // Regression: one featured trip, and never another destination's hero photo.
 const homeSource=app.slice(app.indexOf('function eventCard('),app.indexOf('function dateCards('));
