@@ -45,6 +45,12 @@ administrator may edit its content, including title, category, description,
 times, costs, primary link and photos. Match the field pencils and media-editor
 controls to this rule; enforce it in the RPC and direct table UPDATE policy.
 Use created_by_key with the stable roster key, never a display name.
+Creators can also delete their own program items; the existing administrator can
+delete any item. Enforce this through DELETE RLS with can_edit_program, including
+recovered member identities. Require a named-item confirmation explaining that
+its votes and links are deleted too, but external bookings are not cancelled.
+Do not delete real activities as a test. After successful deletion update the
+activity list and itinerary; denied or failed deletion must keep the item visible.
 
 Photo suggestions are fetched through the authenticated program-link-preview
 Edge Function. Keep membership authorization, validated public HTTPS targets,

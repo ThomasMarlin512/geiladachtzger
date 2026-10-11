@@ -7,7 +7,7 @@ import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
 import {eventUrl,activeView,eventCover,coverImage,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=compact-20261011-1';
 import {fail} from './webmcp-core.js';
 import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=clarity-20261010-1';
-import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram,canEditProgram} from './trip-program.js?v=unified-20261011-2';
+import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram,canEditProgram} from './trip-program.js?v=delete-20261011-1';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const URL = 'https://rzzipqdozabuxrmoxhlw.supabase.co';
@@ -15,6 +15,8 @@ const KEY = 'sb_publishable_4MsQNsSWj2VXmONSNim-zg__T2QeLV0';
 let sb, user, member, memberKey, busy = false, refreshBusy = false, timer;
 let events = [], options = [], votes = [], attendance = [], people = [], directory = [];
 let programItems=[],programVotes=[],programLinks=[],linkItemId=null,mediaItemId=null,previewBusy=false;
+const removedProgramIds=new Set();
+let deletingProgram=null;
 let createdDraftId = null, writeBusy = false, canManageTexts = false, fieldEditor = null;
 const membersUi=createMemberDirectory({client:()=>sb,onIdentity:nickname=>{if(member){member.display_name=nickname;$('member-name').textContent=nickname;}},onSaved:()=>refresh()});
 const currentEventId = new URLSearchParams(location.search).get('id');
@@ -111,7 +113,7 @@ async function refresh() {
   ]);
   const bad=results.find(r=>r.error);if(bad)throw bad.error;
   [events,options,votes,attendance,people,directory,programItems,programVotes,programLinks]=results.map(r=>r.data||[]);
-  programItems=sortProgram(programItems);
+  programItems=sortProgram(programItems.filter(item=>!removedProgramIds.has(item.id)));
   status('');
   if(document.body.dataset.page==='home'){renderHome();await membersUi?.load();}else renderEvent();
  } catch(e) {status('Aktualisierung fehlgeschlagen: '+(e.message||String(e)));}
@@ -284,6 +286,9 @@ function wireForms() {
  $('program-form')?.addEventListener('submit',addProgram);
  $('program-link-form')?.addEventListener('submit',addProgramLink);
  $('program-media-form')?.addEventListener('submit',saveProgramMedia);
+ $('program-delete-form')?.addEventListener('submit',deleteProgram);
+ $('cancel-program-delete')?.addEventListener('click',()=>{if(!writeBusy)$('program-delete-dialog').close();});
+ $('program-delete-dialog')?.addEventListener('cancel',e=>{if(writeBusy)e.preventDefault();});
  $('close-program-media')?.addEventListener('click',()=>{if(!previewBusy)$('program-media-dialog').close();});
  $('load-program-photos')?.addEventListener('click',loadProgramPhotos);
  $('media-image')?.addEventListener('input',updateMediaPreview);
@@ -389,6 +394,7 @@ function renderProgram(event) {
  $('program-timeline').innerHTML=programTimeline(programItems,event,memberKey,canManageTexts);
  container.querySelectorAll('img.program-photo').forEach(img=>img.addEventListener('error',()=>{img.hidden=true;}));
  document.querySelectorAll('#program-list [data-program-media],#program-timeline [data-program-media]').forEach(button=>button.addEventListener('click',()=>openProgramMedia(button.dataset.programMedia)));
+ container.querySelectorAll('[data-program-delete]').forEach(button=>button.addEventListener('click',()=>openDeleteProgram(button.dataset.programDelete)));
  container.querySelectorAll('[data-program-vote]').forEach(button=>button.addEventListener('click',()=>voteProgram(button)));
  container.querySelectorAll('[data-program-link]').forEach(button=>button.addEventListener('click',()=>{
   if(writeBusy)return;
@@ -396,6 +402,31 @@ function renderProgram(event) {
   $('program-link-form').reset();$('program-link-item').textContent=programItems.find(item=>item.id===linkItemId)?.title||'';
   status('','program-link-status');$('program-link-dialog').showModal();$('program-link-label').focus();
  }));
+}
+function openDeleteProgram(id) {
+ if(writeBusy||previewBusy)return;
+ const item=programItems.find(i=>i.id===id);
+ if(!canEditProgram(item,memberKey,canManageTexts))return;
+ deletingProgram={id:item.id,eventId:item.event_id,title:item.title};
+ $('program-delete-title').textContent='„'+item.title+'“ löschen?';
+ status('','program-delete-status');$('program-delete-dialog').showModal();$('cancel-program-delete').focus();
+}
+async function deleteProgram(e) {
+ e.preventDefault();if(writeBusy||!deletingProgram)return;
+ const target={...deletingProgram},item=programItems.find(i=>i.id===target.id);
+ if(!canEditProgram(item,memberKey,canManageTexts)){status('Du kannst diese Aktivität nicht mehr löschen.','program-delete-status');return;}
+ if(item.title!==target.title||item.event_id!==target.eventId){status('Die Aktivität wurde geändert. Bitte schließen und erneut öffnen.','program-delete-status');return;}
+ writeBusy=true;$('program-delete-form').querySelectorAll('button').forEach(b=>{b.disabled=true;});
+ try{
+  const result=await sb.from('group_program_items').delete().eq('id',target.id).eq('event_id',target.eventId).eq('title',target.title).select('id').single();
+  if(result.error)throw result.error;
+  if(result.data?.id!==target.id)throw Error('Aktivität nicht gefunden oder keine Löschberechtigung.');
+  removedProgramIds.add(target.id);
+  programItems=programItems.filter(i=>i.id!==target.id);programVotes=programVotes.filter(v=>v.item_id!==target.id);programLinks=programLinks.filter(l=>l.item_id!==target.id);
+  deletingProgram=null;$('program-delete-dialog').close();renderEvent();
+  status('Aktivität gelöscht. Der Ablauf wurde aktualisiert.','program-status');$('propose-program').focus();
+ }catch(error){status('Nicht gelöscht: '+error.message,'program-delete-status');}
+ finally{writeBusy=false;$('program-delete-form').querySelectorAll('button').forEach(b=>{b.disabled=false;});if($('own-attendance'))$('own-attendance').disabled=false;}
 }
 async function addProgram(e) {
  e.preventDefault();if(writeBusy)return;writeBusy=true;

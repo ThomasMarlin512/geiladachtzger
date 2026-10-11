@@ -105,3 +105,5 @@ nav .home-nav-link:hover{background:#164052}
 #hub-hero{scroll-margin-top:145px}
 
 .program-status{display:inline-block;font-size:12px;font-weight:700;padding:5px 9px;margin:0 8px 10px 0;border-radius:7px;background:#294a60;color:#dcecf4}.program-status.status-planned{background:#174e48;color:#b4f3dc}.program-status.status-booked{background:#24523b;color:#c3f8cd}.program-status.status-alternative{background:#423859;color:#e8ddff}.program-status.has-field-pencil{padding-top:12px!important}.itinerary-planned,.itinerary-proposals{margin-top:24px}.itinerary-proposals{border-top:1px solid var(--line);padding-top:24px}
+
+.program-delete{display:block;min-height:44px;margin-top:8px;padding:10px 0;color:#ffb7c8;text-decoration:underline;text-underline-offset:3px}.program-delete:hover{color:#ffdae3}
