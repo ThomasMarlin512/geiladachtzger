@@ -174,3 +174,7 @@ Responsive destination covers carry data-image-fallback for their original image
 image-fallback.js retries that HTTPS image once, removing srcset first. If both
 fail, retain the readable card. Kufstein uses the same handler for its layered
 header image and album cover; keep the visible source credit.
+
+Activity cards use two wide columns on desktop and one on phones. Keep natural
+card heights and visible action buttons; never allocate a fixed number of
+subgrid rows for content that varies with permissions.
