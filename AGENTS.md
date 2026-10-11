@@ -36,8 +36,11 @@ Every program item supports multiple source links, optional trip day,
 start/end times (including an explicit next-day end), and a selectable
 photo with a source link and credit. Store destination content and photos
 in Supabase; do not hardcode destination-specific photo maps in the template.
-Members can add ideas and links and edit the specifically permitted description, time
-and photo fields. Preserve the existing row and column permissions.
+Members can add ideas and links. Only a program item’s creator and the group
+administrator may edit its content, including title, category, description,
+times, costs, primary link and photos. Match the field pencils and media-editor
+controls to this rule; enforce it in the RPC and direct table UPDATE policy.
+Use created_by_key with the stable roster key, never a display name.
 
 Photo suggestions are fetched through the authenticated program-link-preview
 Edge Function. Keep membership authorization, validated public HTTPS targets,
@@ -111,7 +114,8 @@ aria-current=page. All primary navigation links share the same inactive and
 active appearance. Keep visible keyboard focus indicators independent of this.
 
 All new and existing shared events inherit field pencils from event-field-editor.js.
-Show these additional controls only to the administrator returned by the server.
+Show event-level field pencils only to the administrator returned by the server.
+Show program field pencils to the item’s creator and the administrator.
 Use canonical group_events and group_program_items values, not duplicate text
 overrides. Keep the 44px touch target with the small icon at the top right.
 Save only the selected field or atomic schedule group and compare the original

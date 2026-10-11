@@ -1,11 +1,11 @@
-import {createEventFieldEditor} from './event-field-editor.js?v=20261011-1';
+import {createEventFieldEditor} from './event-field-editor.js?v=owners-20261011-1';
 import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=clarity-20261010-1';
 import {createMemberDirectory} from './member-directory.js?v=clarity-20261010-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
 import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=fields-20261011-1';
 import {fail} from './webmcp-core.js';
 import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=clarity-20261010-1';
-import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram} from './trip-program.js?v=fields-20261011-1';
+import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram,canEditProgram} from './trip-program.js?v=owners-20261011-1';
 const $ = id => document.getElementById(id);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const URL = 'https://rzzipqdozabuxrmoxhlw.supabase.co';
@@ -249,7 +249,7 @@ function readDates() {
  return dates.filter((d,i)=>dates.findIndex(x=>x.start_date===d.start_date&&x.end_date===d.end_date)===i);
 }
 function wireForms() {
- if(currentEventId)fieldEditor=createEventFieldEditor({client:()=>sb,canEdit:()=>canManageTexts,event:()=>events.find(e=>e.id===currentEventId),items:()=>programItems,onBusy:value=>{writeBusy=value;if(!value&&$('own-attendance'))$('own-attendance').disabled=false;},onSaved:async(kind,row)=>{if(kind==='event')events=events.map(e=>e.id===row.id?row:e);else programItems=sortProgram(programItems.map(i=>i.id===row.id?row:i));renderEvent();status('Gespeichert – für alle sichtbar.');}});
+ if(currentEventId)fieldEditor=createEventFieldEditor({client:()=>sb,canEdit:(kind,id)=>kind==='program'?canEditProgram(programItems.find(i=>i.id===id),memberKey,canManageTexts):canManageTexts,event:()=>events.find(e=>e.id===currentEventId),items:()=>programItems,onBusy:value=>{writeBusy=value;if(!value&&$('own-attendance'))$('own-attendance').disabled=false;},onSaved:async(kind,row)=>{if(kind==='event')events=events.map(e=>e.id===row.id?row:e);else programItems=sortProgram(programItems.map(i=>i.id===row.id?row:i));renderEvent();status('Gespeichert – für alle sichtbar.');}});
  $('new-event-button')?.addEventListener('click',()=>{
   if(!createdDraftId){$('new-event-form').reset();$('new-date-options').innerHTML='';addDateRow();status('','create-status');}
   $('event-dialog').showModal();
@@ -373,9 +373,9 @@ async function addOption(e) {
 function renderProgram(event) {
  const container=$('program-list');
  const opened=new Set([...container.querySelectorAll('details[open]')].map(el=>el.dataset.programDetail));
- container.innerHTML=programCards(programItems,programVotes,programLinks,event,memberKey,nameFor,people.length);
+ container.innerHTML=programCards(programItems,programVotes,programLinks,event,memberKey,nameFor,people.length,canManageTexts);
  container.querySelectorAll('[data-program-detail]').forEach(el=>{el.open=opened.has(el.dataset.programDetail);});
- $('program-timeline').innerHTML=programTimeline(programItems,event);
+ $('program-timeline').innerHTML=programTimeline(programItems,event,memberKey,canManageTexts);
  container.querySelectorAll('img.program-photo').forEach(img=>img.addEventListener('error',()=>{img.hidden=true;}));
  document.querySelectorAll('#program-list [data-program-media],#program-timeline [data-program-media]').forEach(button=>button.addEventListener('click',()=>openProgramMedia(button.dataset.programMedia)));
  container.querySelectorAll('[data-program-vote]').forEach(button=>button.addEventListener('click',()=>voteProgram(button)));
@@ -439,7 +439,7 @@ function updateMediaPreview() {
 }
 function openProgramMedia(id) {
  if(writeBusy||previewBusy)return;
- const item=programItems.find(i=>i.id===id);if(!item)return;mediaItemId=id;
+ const item=programItems.find(i=>i.id===id);if(!canEditProgram(item,memberKey,canManageTexts))return;mediaItemId=id;
  $('program-media-form').reset();$('program-media-item').textContent=item.title;
  $('media-description').value=item.description||'';
  $('media-day').value=item.day_number||'';$('media-hint').value=item.time_label;
@@ -481,6 +481,7 @@ async function saveProgramMedia(e) {
  e.preventDefault();if(writeBusy||previewBusy)return;writeBusy=true;
  const button=e.target.querySelector('[type=submit]');button.disabled=true;
  try {
+  if(!canEditProgram(programItems.find(i=>i.id===mediaItemId),memberKey,canManageTexts))throw Error('Nur der Ersteller und die Gruppenverwaltung dürfen diesen Programmpunkt bearbeiten.');
   const times=readProgramTimes('media'),rawImage=$('media-image').value.trim(),rawSource=$('media-source').value.trim();
   const image_url=rawImage?httpsUrl(rawImage):'',image_source_url=rawSource?httpsUrl(rawSource):'';
   if(rawImage&&!image_url)throw Error('Bitte eine gültige HTTPS-Bildadresse eingeben.');

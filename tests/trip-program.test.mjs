@@ -58,7 +58,7 @@ const itineraryItems=[
 {id:'overlap',title:'Alternative',description:'Andere Idee',day_number:1,start_time:'10:00',end_time:'11:00'},
 {id:'open',title:'Offen',description:'',day_number:null}
 ];
-const itinerary=programTimeline(itineraryItems,{start_date:'2027-09-02'});
+const itinerary=programTimeline(itineraryItems,{start_date:'2027-09-02'},'admin',true);
 assert.ok(itinerary.indexOf('>Früh</a>')<itinerary.indexOf('>Abend</a>'));
 assert.ok(itinerary.includes('Treffpunkt am Hotel'));
 assert.ok(itinerary.includes('09:00–10:30'));
@@ -69,3 +69,20 @@ assert.deepEqual([...programConflicts(itineraryItems)].sort(),['early','overlap'
 assert.equal(programConflicts([{id:'a',day_number:1,start_time:'09:00',end_time:'10:00'},{id:'b',day_number:1,start_time:'10:00',end_time:'11:00'}]).size,0);
 assert.equal(programConflicts([{id:'a',day_number:1,start_time:'23:00',end_time:'01:00',ends_next_day:true},{id:'b',day_number:2,start_time:'00:30',end_time:'02:00'}]).size,2);
 console.log('PASS: automatic itinerary sorts, includes descriptions and edit actions, keeps open times and flags real overlaps');
+
+// Edit controls follow stable author keys; votes and adding links remain available.
+const {canEditProgram}=await import('../trip-program.js');
+const ownItem={id:'owned',title:'My idea',created_by_key:'owner',category:'activity'};
+assert.equal(canEditProgram(ownItem,'owner'),true);
+assert.equal(canEditProgram(ownItem,'other'),false);
+assert.equal(canEditProgram(ownItem,'admin',true),true);
+assert.equal(canEditProgram({id:'unassigned'},null),false);
+for(const [key,admin,editable] of [['owner',false,true],['other',false,false],['admin',true,true]]){
+ const cards=programCards([ownItem],[],[],{},key,()=>'',3,admin);
+ const plan=programTimeline([ownItem],{},key,admin);
+ assert.equal(cards.includes('data-program-media="owned"'),editable);
+ assert.equal(plan.includes('data-program-media="owned"'),editable);
+ assert(cards.includes('data-program-vote="owned"'));
+ assert(cards.includes('data-program-link="owned"'));
+}
+console.log('PASS: program editing restricted to author and admin in cards and itinerary');

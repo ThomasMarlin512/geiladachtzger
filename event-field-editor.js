@@ -7,7 +7,7 @@ export const eventFieldSpecs={
  hotel_name:{label:'Hotel / Unterkunft',type:'text',max:160},hotel_status:{label:'Stand der Unterkunft',type:'select',options:{open:'Noch offen',proposed:'Vorgeschlagen',booked:'Gebucht'}},hotel_details:text('Hotel · Adresse, Check-in und Hinweise'),hotel_url:link('Hotelwebseite'),
  album_label:{label:'Bezeichnung des Fotoalbums',type:'text',max:120},album_url:link('Freigabelink zum Fotoalbum')
 };
-export const programFieldSpecs={title:{label:'Programmpunkt',type:'text',min:2,max:100},description:text('Beschreibung',1500),cost_label:{label:'Kosten / Hinweis',type:'text',max:120},website_url:link('Weitere Infos'),time_label:{label:'Hinweis zur Zeit',type:'text',max:80},schedule:{label:'Tag und Uhrzeit',type:'schedule'}};
+export const programFieldSpecs={category:{label:'Kategorie',type:'select',options:{activity:'Aktivität',food:'Essen & Trinken',hotel:'Unterkunft',travel:'Anreise',other:'Weitere Idee'}},title:{label:'Programmpunkt',type:'text',min:2,max:100},description:text('Beschreibung',1500),cost_label:{label:'Kosten / Hinweis',type:'text',max:120},website_url:link('Weitere Infos'),time_label:{label:'Hinweis zur Zeit',type:'text',max:80},schedule:{label:'Tag und Uhrzeit',type:'schedule'}};
 const scheduleFields=['day_number','start_time','end_time','ends_next_day','time_label'];
 export function fieldPatch(kind,field,values){
  const spec=(kind==='event'?eventFieldSpecs:programFieldSpecs)[field];
@@ -49,7 +49,7 @@ export function createEventFieldEditor({client,canEdit,event,items,onSaved,onBus
   wrapper.append(label,input);inputs.append(wrapper);
  }
  function open(kind,field,id){
-  if(!canEdit()||saving)return;
+  if(!canEdit(kind,id)||saving)return;
   const row=kind==='event'?event():items().find(i=>i.id===id),spec=(kind==='event'?eventFieldSpecs:programFieldSpecs)[field];if(!row||!spec)return;
   const fields=field==='schedule'?scheduleFields:[field];
   active={kind,field,id:row.id,expected:Object.fromEntries(fields.map(key=>[key,row[key]??null]))};
@@ -65,16 +65,15 @@ export function createEventFieldEditor({client,canEdit,event,items,onSaved,onBus
  function mount(){
   document.querySelectorAll('[data-event-field],[data-program-field]').forEach(node=>{
    node.querySelectorAll('.field-pencil,.field-empty-hint').forEach(b=>b.remove());node.classList.remove('has-field-pencil');
-   if(!canEdit())return;
    const kind=node.dataset.eventField?'event':'program',field=node.dataset.eventField||node.dataset.programField;
    const spec=(kind==='event'?eventFieldSpecs:programFieldSpecs)[field];if(!spec)return;
-   const id=kind==='event'?event()?.id:node.closest('[data-program-id]')?.dataset.programId;if(!id)return;
+   const id=kind==='event'?event()?.id:node.closest('[data-program-id]')?.dataset.programId;if(!id||!canEdit(kind,id))return;
    if(!node.textContent.trim()){const hint=document.createElement('span');hint.className='field-empty-hint';hint.textContent=spec.label+' ergänzen';node.append(hint);}
    node.classList.add('has-field-pencil');const button=document.createElement('button');button.type='button';button.className='field-pencil';button.innerHTML=pencil;button.title=spec.label+' bearbeiten';button.setAttribute('aria-label',button.title);button.addEventListener('click',()=>open(kind,field,id));node.append(button);
   });
  }
  form.addEventListener('submit',async e=>{
-  e.preventDefault();if(!active||saving||!canEdit())return;saving=true;onBusy(true);error.textContent='';
+  e.preventDefault();if(!active||saving||!canEdit(active.kind,active.id))return;saving=true;onBusy(true);error.textContent='';
   const buttons=dialog.querySelectorAll('button,input,textarea,select');buttons.forEach(b=>b.disabled=true);
   try{
    const values={};inputs.querySelectorAll('input,textarea,select').forEach(input=>{values[input.name]=input.type==='checkbox'?input.checked:input.value;});

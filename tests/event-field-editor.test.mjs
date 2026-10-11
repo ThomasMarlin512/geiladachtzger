@@ -27,3 +27,6 @@ assert(cards.includes('data-program-id="item"'));assert(timeline.includes('data-
 const app=readFileSync(new URL('../app.js',import.meta.url),'utf8');
 for(const field of ['title','location','description','website_url'])assert(app.includes('data-event-field="'+field+'"'));
 console.log('PASS: field validation, nullable times, secure links, date rules, and shared new-event edit targets');
+
+assert.equal(fieldPatch('program','category',{category:'food'}).category,'food');
+assert.throws(()=>fieldPatch('program','category',{category:'invalid'}));
