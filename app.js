@@ -1,6 +1,6 @@
 import {createEventFieldEditor} from './event-field-editor.js?v=owners-20261011-1';
 import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=poll-covers-20261011-1';
-import {createMemberDirectory} from './member-directory.js?v=clarity-20261010-1';
+import {createMemberDirectory} from './member-directory.js?v=personal-20261011-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
 import {eventUrl,activeView,eventCover,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=fields-20261011-1';
 import {fail} from './webmcp-core.js';
@@ -40,6 +40,12 @@ async function init() {
   try { $('login-name').value=JSON.parse(localStorage.getItem('kufstein_votes_v3')||'{}').name||''; } catch {}
   $('login-form').addEventListener('submit',e=>{e.preventDefault();authenticate(false);});
   $('join-form').addEventListener('submit',e=>{e.preventDefault();authenticate(true);});
+  $('email-login-form')?.addEventListener('submit',async e=>{
+   e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;
+   try{const r=await sb.auth.signInWithOtp({email:$('login-email').value.trim(),options:{shouldCreateUser:false,emailRedirectTo:location.origin+'/kufstein-2026/einstellungen.html'}});if(r.error)throw r.error;status('Wenn die Adresse bestätigt ist, erhältst du einen Anmeldelink.','email-login-status');}
+   catch(error){status('Anmeldelink konnte nicht angefordert werden: '+error.message,'email-login-status');}
+   finally{button.disabled=false;}
+  });
   wireForms();
   document.querySelectorAll('.hub-nav a[href^="#"]').forEach(link=>link.addEventListener('click',()=>{const target=document.getElementById(link.hash.slice(1));if(target?.tagName==='DETAILS')target.open=true;}));
   if($('event-settings-link')&&currentEventId)$('event-settings-link').href='einstellungen.html?'+new URLSearchParams({event:currentEventId});
@@ -68,7 +74,7 @@ async function authenticate(join) {
 async function enter() {
  const m=await sb.from('group_members').select('display_name').eq('user_id',user.id).maybeSingle();
  if(m.error)throw m.error;
- if(!m.data)throw Error('Bitte mit Nickname oder vollständigem Namen und Gruppencode anmelden.');
+ if(!m.data)throw Error('Bitte mit Nickname oder vollständigem Namen und persönlichem Anmeldecode anmelden.');
  const key=await sb.from('trip_attendance').select('roster_key').eq('user_id',user.id).single();
  if(key.error)throw key.error;
  member=m.data;memberKey=key.data.roster_key;
@@ -80,6 +86,7 @@ async function enter() {
  }
  $('auth').hidden=true;$('app').hidden=false;$('member-name').textContent=member.display_name;
  await refresh();
+ window.GroupLoginSecurity?.showNotice(sb,document.querySelector('#app main'));
  revealHomeSection();
  if(!timer)timer=setInterval(()=>{if(!document.hidden&&!writeBusy&&!document.activeElement?.closest('form')&&document.activeElement?.tagName!=='SELECT')refresh();},15000);
 }

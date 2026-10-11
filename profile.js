@@ -8,6 +8,7 @@ function cacheNickname(nickname){
 }
 function fillProfile(profile){
  currentProfile=profile;
+ window.GroupLoginSecurity?.mountProfile(profileSb);
  $('full-name').value=profile.full_name||'';
  $('nickname').value=profile.nickname||'';
  $('email').value=profile.email||'';
@@ -18,7 +19,7 @@ function fillProfile(profile){
  $('link-email').disabled=!profile.email||!!(sameEmail&&profile.login_email_confirmed);
  if(sameEmail&&profile.login_email_confirmed)status('email-login-state','E-Mail-Anmeldung aktiv für '+profile.login_email);
  else if(profile.login_email&&profile.login_email_confirmed)status('email-login-state','Aktuelle bestätigte Anmeldeadresse: '+profile.login_email+'. Eine andere Profiladresse kannst du unten zusätzlich bestätigen.');
- else status('email-login-state','Du kannst dich mit Nickname oder vollständigem Namen und Gruppencode anmelden. Die E-Mail-Anmeldung ist optional und benötigt eine Bestätigung.');
+ else status('email-login-state','Du kannst dich mit Nickname oder vollständigem Namen und persönlichem Anmeldecode anmelden. Die E-Mail-Anmeldung ist optional und benötigt eine Bestätigung.');
  cacheNickname(profile.nickname);
 }
 async function loadProfile(){
@@ -29,7 +30,7 @@ async function loadProfile(){
   if(!profileSb)profileSb=window.supabase.createClient(PROFILE_URL,PROFILE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
   const {data:{session},error}=await profileSb.auth.getSession();
   if(error)throw error;
-  if(!session){$('content').hidden=true;$('login-help').hidden=false;status('page-status','Bitte zuerst mit deinem Nickname oder vollständigem Namen und Gruppencode anmelden.',true);return}
+  if(!session){$('content').hidden=true;$('login-help').hidden=false;status('page-status','Bitte zuerst mit deinem Nickname oder vollständigem Namen und persönlichem Anmeldecode anmelden.',true);return}
   const result=await profileSb.rpc('get_my_kufstein_profile');
   if(result.error){$('login-help').hidden=false;throw result.error;}
   if(!result.data)throw Error('Dein Profil konnte nicht geladen werden.');
@@ -65,7 +66,7 @@ async function linkProfileEmail(){
   status('email-status','Bestätigung angefordert. Bitte den Link in deinem E-Mail-Postfach öffnen. Dein Profil ist bereits gespeichert.');
  }catch(e){
   const message=e.message||String(e);
-  status('email-status',/already been registered|already registered|already exists|email_exists/i.test(message)?'Deine Profiladresse ist gespeichert. Für diese E-Mail besteht bereits ein anderes Anmeldekonto. Nutze vorerst deinen Nickname oder vollständigen Namen und den Gruppencode.':'Die E-Mail-Bestätigung konnte nicht angefordert werden: '+message,true);
+  status('email-status',/already been registered|already registered|already exists|email_exists/i.test(message)?'Deine Profiladresse ist gespeichert. Für diese E-Mail besteht bereits ein anderes Anmeldekonto. Nutze vorerst deinen Nickname oder vollständigen Namen und deinen persönlichen Anmeldecode.':'Die E-Mail-Bestätigung konnte nicht angefordert werden: '+message,true);
  }finally{profileBusy=false;$('link-email').disabled=false;$('save-profile').disabled=false}
 }
 $('profile-form').onsubmit=saveProfile;

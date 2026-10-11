@@ -13,6 +13,10 @@ export function createMemberDirectory({client,onIdentity,onSaved}) {
   $('manage-members').setAttribute('aria-pressed',String(managing));
   $('group-member-list').innerHTML=filtered.map(p=>'<li class="group-member-card"><div class="member-avatar" aria-hidden="true">'+esc(p.full_name.split(/\s+/).filter(Boolean).map(n=>Array.from(n)[0]).slice(0,2).join(''))+'</div><div class="member-details"><h3>'+esc(p.full_name)+(p.is_self?' <span class="tag">Du</span>':'')+'</h3><p>'+esc(p.nickname?'Nickname: '+p.nickname:'Nickname noch offen')+'</p><small>'+(p.is_admin?'Gruppenadmin':p.registered?'Profil eingerichtet':'Profil noch offen')+'</small></div>'+(managing&&canManage?'<button type="button" class="secondary" data-edit-member="'+esc(p.id)+'" aria-label="'+esc(p.full_name)+' bearbeiten">Bearbeiten</button>':p.is_self?'<a class="member-settings-link" href="einstellungen.html">Meine Einstellungen →</a>':'')+'</li>').join('')||'<li class="empty">Keine Mitglieder gefunden.</li>';
   $('group-member-list').querySelectorAll('[data-edit-member]').forEach(button=>button.addEventListener('click',()=>openEditor(button.dataset.editMember)));
+  if(managing&&canManage&&window.GroupLoginSecurity)for(const person of filtered.filter(p=>p.registered&&!p.is_admin)){
+   const card=[...$('group-member-list').querySelectorAll('[data-edit-member]')].find(b=>b.dataset.editMember===person.id)?.closest('li');
+   if(!card)continue;const button=document.createElement('button');button.type='button';button.className='quiet';button.textContent='Anmeldecode erneuern';button.addEventListener('click',()=>window.GroupLoginSecurity.showCode(client(),person.member_key||person.roster_key,'Anmeldecode für '+person.full_name));card.append(button);
+  }
  }
  async function load(){
   if(loading)return;loading=true;$('reload-members').disabled=true;

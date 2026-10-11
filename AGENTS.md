@@ -67,8 +67,13 @@ remain planning/confirmed/saved. House + Hauptseite always links to the group
 hub; calendar + Übersicht links to the current event, with text labels alongside
 icons so the two destinations remain clear on phones.
 
-Returning members can log in with their nickname or full name plus the group
-code. Resolve names only on the server after validating the code; reject
+Returning members without confirmed email log in with their nickname or full name
+and an individual high-entropy login code. The shared group code is only for new
+members; never use it to recover an existing identity. Confirmed email accounts,
+especially administrators, use verified email login and cannot be moved by code.
+Existing sessions stay valid. Personal codes are issued only to the signed-in
+owner or by the verified administrator for non-admin accounts; store only hashes.
+Never log or persist the plaintext personal code in browser storage. Reject
 ambiguous aliases. Preserve the canonical nickname, stable roster key, votes
 and organizer rights. Login fields allow 100 characters; new nicknames stay
 limited to 50. Never retrieve private profiles in the unauthenticated frontend.
