@@ -2,10 +2,34 @@
 .trip-nav,.event-main-nav{position:sticky;top:0;z-index:30;background:#071b2cf5;border-bottom:1px solid #284c60;backdrop-filter:blur(12px)}
 .trip-nav .nav-inner,.event-main-nav .nav-inner{box-sizing:border-box;max-width:1028px;margin:auto;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 24px}
 .trip-nav .nav-links,.event-main-nav .event-tabs{order:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));flex:0 0 100%;width:100%;max-width:none;gap:7px;overflow:visible;margin:0;padding:0;border:0}
-.event-main-nav .event-tabs:has(#date-nav:not([hidden])){grid-template-columns:repeat(4,minmax(0,1fr))}
 .trip-nav .nav-links a,.event-main-nav .event-tabs a{box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-height:44px;font:650 14px system-ui,sans-serif;padding:10px 6px;white-space:normal;text-align:center;text-decoration:none;color:#d5e9f0;background:#102e3f;border:1px solid transparent;border-radius:9px}
 .trip-nav .nav-links a[aria-current],.event-main-nav .event-tabs a[aria-current]{border-color:#8be4df;background:#1b3e50;color:#eafffc}
 .event-main-nav .nav-links{flex:1;margin:0;overflow:visible;justify-content:flex-end}.trip-settings{margin-left:auto}.trip-layout main{box-sizing:border-box;max-width:1028px;margin:auto;padding:28px 24px}.trip-layout [hidden]{display:none!important}.trip-layout [id]{scroll-margin-top:150px}.trip-layout .overview-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}.trip-layout .overview-link{display:block;padding:20px;border:1px solid #325a6e;border-radius:14px;text-decoration:none;background:#0c293b;color:#d5e9f0}.trip-layout .overview-link strong{display:block;font-size:18px;margin-bottom:8px}.trip-layout .overview-link span{font-size:13px}.trip-layout #kufstein-program-view>#programm{margin-bottom:28px}.trip-layout #aktivitaeten{margin-top:28px}.trip-layout .info-grid{margin-top:0}#hub-hero{scroll-margin-top:145px}
 @media(max-width:700px){.trip-nav .nav-inner,.event-main-nav .nav-inner{padding:9px 16px;gap:8px}.trip-nav .nav-links a,.event-main-nav .event-tabs a{font-size:13px}.trip-layout main{padding:24px 18px}.trip-layout .overview-shortcuts{grid-template-columns:1fr}.event-main-nav .member-name{display:none}.trip-layout header#start{min-height:270px;padding-top:35px}}
 @media print{.trip-layout [data-trip-view][hidden]{display:block!important}.trip-nav,.event-main-nav{display:none!important}}
 body[data-page=event] [id]{scroll-margin-top:150px}
+
+/* Three primary views; the photo entrance stays in the destination cover. */
+.event-photo-link{display:flex;align-items:center;gap:16px;width:min(100%,560px);box-sizing:border-box;margin-top:24px;padding:17px 20px;border:1px solid #d8d0ff;border-radius:16px;background:linear-gradient(110deg,#c6bef3,#b6e9e4);color:#102a3c;text-decoration:none;text-shadow:none}
+.event-photo-link>span:first-child{font-size:28px}.event-photo-link>span:nth-child(2){flex:1;min-width:0}.event-photo-link strong{display:block;font-size:19px;line-height:1.3}.event-photo-link small{display:block;font-size:13px;margin-top:4px}.event-photo-link>span:last-child{font-size:30px}
+.trip-layout .trip-section-title{font-size:clamp(24px,3.5vw,32px);margin:0 0 22px}
+.trip-layout .info-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:20px}
+.trip-layout .info-grid>#restaurantstatus{grid-column:1/-1}
+.trip-layout #kufstein-group-view>#teilnehmer{margin:0}
+.trip-layout #kufstein-group-view #trip-member-heading{font-size:clamp(24px,3.5vw,32px);margin-top:0}
+.trip-layout .member-list,body[data-page=event] .people-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:12px}
+.trip-layout .member-list .trip-member,body[data-page=event] .people-list>li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px 14px;min-width:0;overflow-wrap:normal}
+.trip-layout .member-identity,body[data-page=event] .member-identity{min-width:0;overflow-wrap:break-word;word-break:normal;line-height:1.4}
+.trip-layout .member-identity strong,body[data-page=event] .member-identity strong{font-size:15px}
+.trip-layout .member-identity small{display:block;margin:3px 0 0}
+.trip-layout .member-list .attendance-select,body[data-page=event] .people-list select{box-sizing:border-box;width:130px;max-width:100%;min-height:44px;margin:0;padding:8px;font-size:13px}
+.trip-layout .member-list .member-badge,body[data-page=event] .people-list .status-label{font-size:12px;white-space:nowrap}
+@media(max-width:700px){
+ .trip-layout .info-grid,.trip-layout .member-list,body[data-page=event] .people-list{grid-template-columns:1fr}
+ .trip-layout .info-grid>#restaurantstatus{grid-column:auto}
+ .event-photo-link{gap:12px;padding:15px}.event-photo-link strong{font-size:17px}
+}
+@media(max-width:380px){
+ .trip-layout .member-list .trip-member:has(select),body[data-page=event] .people-list>li:has(select){grid-template-columns:1fr;gap:8px}
+ .trip-layout .member-list .attendance-select,body[data-page=event] .people-list select{width:100%}
+}

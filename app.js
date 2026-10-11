@@ -1,10 +1,10 @@
 import {replaceKeepingOpenDetails} from './view-state.js?v=unified-20261011-2';
 import {wireImageFallbacks} from './image-fallback.js?v=mobile-20261011-1';
 import {createEventFieldEditor} from './event-field-editor.js?v=unified-20261011-2';
-import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=mobile-20261011-1';
-import {createMemberDirectory} from './member-directory.js?v=personal-20261011-1';
+import {formatPeriod,summarizeDates,planningCards,photoCards} from './planning-overview.js?v=compact-20261011-1';
+import {createMemberDirectory} from './member-directory.js?v=compact-20261011-1';
 import {installHubTools} from './webmcp-tools.js?v=structure-20261010-1';
-import {eventUrl,activeView,eventCover,coverImage,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=mobile-20261011-1';
+import {eventUrl,activeView,eventCover,coverImage,travelCards,albumCard,travelTimeline,detailFields,photoPageUrl} from './event-layout.js?v=compact-20261011-1';
 import {fail} from './webmcp-core.js';
 import {votingCalendar,wireVotingCalendars,selectCalendarDate} from './voting-calendar.js?v=clarity-20261010-1';
 import {programCards,programTimeline,httpsUrl,programPhoto,sortProgram,canEditProgram} from './trip-program.js?v=unified-20261011-2';
@@ -191,18 +191,16 @@ function renderEvent() {
  $('event-content').hidden=false;$('event-tabs').hidden=false;
  document.title=event.title+' · Geiladachtzger';
  const organizer=event.created_by_key===memberKey;
+ const view=activeView(location.search,location.hash,event);
  const url=safeUrl(event.website_url),heroPhoto=eventCover(event,programItems);
- $('event-detail').innerHTML='<header class="trip-hero">'+coverImage(heroPhoto,'trip-hero-photo',true)+'<div class="trip-hero-content"><span class="tag '+esc(event.status)+'">'+esc(past(event)?'Rückblick':stateLabels[event.status])+'</span><h1 class="event-title" data-event-field="title">'+esc(event.title)+'</h1><p>'+esc(dateRange(event.start_date,event.end_date))+' · <span data-event-field="location">'+esc(event.location||'Ort noch offen')+'</span></p></div>'+(heroPhoto?'<a class="hero-credit" href="'+esc(heroPhoto.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(heroPhoto.credit)+'</a>':'')+'</header>';
+ $('event-detail').innerHTML='<header class="trip-hero">'+coverImage(heroPhoto,'trip-hero-photo',true)+'<div class="trip-hero-content"><span class="tag '+esc(event.status)+'">'+esc(past(event)?'Rückblick':stateLabels[event.status])+'</span><h1 class="event-title" data-event-field="title">'+esc(event.title)+'</h1><p>'+esc(dateRange(event.start_date,event.end_date))+' · <span data-event-field="location">'+esc(event.location||'Ort noch offen')+'</span></p>'+(view!=='fotos'?'<a class="event-photo-link" href="'+esc(eventUrl(event,'fotos'))+'"><span aria-hidden="true">📷</span><span><strong>Fotos & Erinnerungen</strong><small>'+(safeUrl(event.album_url)?'Zum gemeinsamen Album':'Fotoalbum zur Reise')+'</small></span><span aria-hidden="true">→</span></a>':'')+'</div>'+(heroPhoto?'<a class="hero-credit" href="'+esc(heroPhoto.source)+'" target="_blank" rel="noopener noreferrer">Foto: '+esc(heroPhoto.credit)+'</a>':'')+'</header>';
  $('trip-information').innerHTML=(event.description?'<p class="event-description preserve-lines" data-event-field="description">'+esc(event.description)+'</p>':'<p class="subtle" data-event-field="description">Die Beschreibung eurer Reise kann noch ergänzt werden.</p>')+'<div data-event-field="website_url">'+(url?'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Weitere Reiseinfos ↗</a>':'')+'</div>';
  $('travel-details').innerHTML=travelCards(event);
  $('travel-timeline').innerHTML=travelTimeline(event);
  $('event-photos').innerHTML=albumCard(event,organizer);
  $('event-plan-notice').innerHTML=event.status==='saved'?'<p class="planning-notice">Für später gespeichert. Eure Inhalte und bisherigen Stimmen bleiben erhalten; die Terminabstimmung pausiert.</p>':event.status==='planning'?'<p class="planning-notice">Termin noch offen. <a href="'+esc(eventUrl(event,'termine'))+'">Termine vorschlagen & abstimmen →</a></p>':'';
- $('overview-shortcuts').innerHTML='<a class="overview-link" href="'+esc(eventUrl(event,'programm'))+'"><strong>Programm & Ablauf</strong><span>'+programItems.length+' Ideen · Zeiten, Links und Abstimmung →</span></a><a class="overview-link photo-shortcut" href="'+esc(eventUrl(event,'fotos'))+'"><strong>📷 Fotos & Erinnerungen</strong><span>'+(safeUrl(event.album_url)?'Fotoalbum öffnen':'Zur Fotoseite')+' →</span></a>';
- const view=activeView(location.search,location.hash,event);
- for(const [name,id] of Object.entries({uebersicht:'event-overview',programm:'event-program',termine:'event-dates-section',fotos:'event-photos'})) $(id).hidden=name!==view;
+ for(const [name,id] of Object.entries({uebersicht:'event-overview',programm:'event-program',gruppe:'teilnehmer',termine:'event-dates-section',fotos:'event-photos'})) $(id).hidden=name!==view;
  document.querySelectorAll('[data-event-view]').forEach(link=>{const name=link.dataset.eventView;link.href=eventUrl(event,name);if(name===view)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
- $('date-nav').hidden=event.status!=='planning';
  if(view==='termine'&&event.status==='planning'){
   replaceKeepingOpenDetails($('date-comparison'),dateComparison(event,organizer));wireVotes($('date-comparison'));
   replaceKeepingOpenDetails($('event-dates'),votingCalendar(event,options,votes,memberKey,people,id=>dateCards(event,organizer,id)));wireVotes($('event-dates'));
@@ -233,7 +231,8 @@ function renderPeople(event) {
   totals[choice]++;
   const nickname=directory.find(p=>p.roster_key===person.member_key)?.nickname;
   const own=person.member_key===memberKey;
-  return '<li class="'+choice+'"><div><strong>'+esc(person.full_name)+'</strong>'+(nickname&&nickname!==person.full_name?'<small>'+esc(nickname)+(own?' · Du':'')+'</small>':own?'<small>Du</small>':'')+'</div>'+(own?'<select id="own-attendance" aria-label="Meine Teilnahme" '+(writeBusy?'disabled':'')+'>'+Object.entries(labels).map(([value,label])=>'<option value="'+value+'" '+(choice===value?'selected':'')+'>'+label+'</option>').join('')+'</select>':'<span class="status-label">'+labels[choice]+'</span>')+'</li>';
+  const showNickname=nickname&&!([person.full_name,person.full_name.split(/\s+/)[0]].some(name=>name.toLocaleLowerCase('de')===nickname.toLocaleLowerCase('de')));
+  return '<li class="'+choice+'"><div class="member-identity"><strong>'+esc(person.full_name)+'</strong>'+(showNickname?'<small>'+esc(nickname)+(own?' · Du':'')+'</small>':own?'<small>Du</small>':'')+'</div>'+(own?'<select id="own-attendance" aria-label="Meine Teilnahme" '+(writeBusy?'disabled':'')+'>'+Object.entries(labels).map(([value,label])=>'<option value="'+value+'" '+(choice===value?'selected':'')+'>'+label+'</option>').join('')+'</select>':'<span class="status-label">'+labels[choice]+'</span>')+'</li>';
  }).join('');
  $('attendance-count').textContent=totals.yes+' dabei · '+totals.maybe+' unsicher · '+totals.no+' nicht dabei';
  $('own-attendance')?.addEventListener('change',e=>setAttendance(event.id,e.target.value));

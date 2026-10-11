@@ -7,14 +7,18 @@ to that shared event page. Kufstein 2026 keeps its existing dedicated page
 and confirmed bookings; do not silently migrate its data.
 
 Apply layout improvements centrally so existing and future shared excursion
-pages stay consistent. The common structure is a destination photo header, then four views in the same
-shared template: Übersicht, Programm & Abstimmung, Termine, Fotos. The view query
-parameter creates linkable event subpages without copying destination HTML.
-Overview contains separate arrival, departure, hotel and participation fields.
-Program contains the automatic itinerary and activity votes. Dates and calendars
-appear only on the Termine view while planning. Photos opens an external album
-link; no upload or synchronization is implied. On event pages, the first navigation control is a labelled house button to the
-group hub; the event overview uses a calendar icon and the label Übersicht.
+pages stay consistent. The common structure is a destination photo header, then
+three primary tabs: Reiseinfos, Programm, Gruppe. Reiseinfos contains Unterkunft &
+Reiseinfos with separate arrival, departure and hotel fields. Gruppe has the
+full-width participation area; never squeeze participants beside hotel or costs.
+The view query creates linkable subpages without copying destination HTML; keep
+uebersicht as the Reiseinfos route for compatibility. Program contains the
+automatic itinerary and activity votes. Termine remains a secondary view linked
+from the planning notice, available only while planning. Fotos is reached once
+from the photo header, not repeated as a primary tab or an overview shortcut.
+It opens the existing album page; no upload or synchronization is implied.
+On event pages, the first navigation control is a labelled house button to the
+group hub.
 Keep no large logo or category icon above the event's status.
 
 Destination covers and structured travel/hotel/album fields live in group_events.
@@ -64,8 +68,8 @@ never a fallback image from another destination. Keep the mobile header compact.
 Use Vorschlag for the visible planning status and Veranstaltung vorschlagen for
 creating events. Keep Termin steht for confirmed dates. Internal status values
 remain planning/confirmed/saved. House + Hauptseite always links to the group
-hub; calendar + Übersicht links to the current event, with text labels alongside
-icons so the two destinations remain clear on phones.
+hub; Reiseinfos links to the current event overview. Keep the primary labels
+short enough to fit three tabs on phones.
 
 Returning members sign in through member-code-login using nickname, full name,
 or saved/verified email plus an individually changeable code. This also applies
@@ -110,8 +114,8 @@ ties, and never confirm a date automatically. Ignore expired dates in progress
 and leaders. Only the organizer finalizes dates. No personal-calendar or birthday
 availability is implied by these member votes.
 
-Photos are a first-class navigation destination, a hero shortcut, and a prominent
-hub album area. Destination covers are labelled as title images, not as images
+Photos stay prominent as one excursion hero shortcut and as the hub photo tab
+and album area. Avoid duplicate photo links on the excursion overview. Destination covers are labelled as title images, not as images
 retrieved from the private albums. All shared trips use the same photo view;
 Kufstein keeps /kufstein-2026/fotos.html and its existing iCloud link. Do not imply
 uploads or album synchronization. The album provider controls those permissions.
@@ -141,9 +145,14 @@ own-event program-photo fallback, visible source credit and readable overlay.
 Pass programItems to planningCards so new proposals inherit this behavior.
 
 The Events hub link targets the featured next trip (#hub-hero). All excursion
-pages share the sticky overview/program/dates/photos navigation styling from
-trip-navigation.css; hide dates when confirmed. Kufstein keeps its data and text
-keys, but trip-views.js presents overview and program separately. Its legacy
+pages share the sticky Reiseinfos/Programm/Gruppe navigation styling from
+trip-navigation.css. Date planning is linked separately and disappears when
+confirmed. Kufstein keeps its data and text keys, but trip-views.js presents
+overview, program and group separately. Member cards show full names and only
+distinct nicknames without a "Nickname:" prefix; omit nicknames repeating the
+full or first name. Preserve explicit nickname labels in editable profile fields.
+Participant cards have room for the own attendance selector, with normal word
+wrapping and a stacked selector on narrow phones. Its legacy
 abstimmung.html redirects to the program while preserving auth query/hash data.
 Keep open date-voter details by stable option IDs across refreshes.
 Program plan_status is idea/alternative/planned/booked. Only planned and booked

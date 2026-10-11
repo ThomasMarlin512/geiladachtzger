@@ -1,13 +1,13 @@
 import {coverVariants} from './cover-variants.js?v=optimized-20261011-1';
 import {escapeHtml as esc,httpsUrl,programPhoto} from './trip-program.js?v=unified-20261011-2';
 
-export const eventViews=['uebersicht','programm','termine','fotos'];
+export const eventViews=['uebersicht','programm','gruppe','termine','fotos'];
 export const detailFields=['outbound_time','outbound_details','outbound_url','return_time','return_details','return_url','hotel_name','hotel_url','hotel_details','hotel_status','album_url','album_label','cover_image_url','cover_source_url','cover_credit'];
 export const eventUrl=(event,view='uebersicht')=>'event.html?id='+encodeURIComponent(event.id)+(view==='uebersicht'?'':'&view='+view);
 export const photoPageUrl=event=>event.id==='kufstein-2026'?'/kufstein-2026/fotos.html':eventUrl(event,'fotos');
 export function activeView(search,hash,event){
  const requested=new URLSearchParams(search).get('view');
- const legacy=['#programm','#aktivitaeten'].includes(hash)?'programm':['#date-suggestion','#event-dates-section'].includes(hash)?'termine':'uebersicht';
+ const legacy=['#programm','#aktivitaeten'].includes(hash)?'programm':['#date-suggestion','#event-dates-section'].includes(hash)?'termine':['#teilnehmer','#event-people'].includes(hash)?'gruppe':'uebersicht';
  const view=eventViews.includes(requested)?requested:legacy;
  return view==='termine'&&event.status!=='planning'?'uebersicht':view;
 }
