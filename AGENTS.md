@@ -185,8 +185,10 @@ navigation and reveals authorized field pencils and edit actions; Fertig hides
 them again. Use an explicit Bearbeitungsmodus aria-label and aria-pressed state. Keep the mode local to
 the current page and reset it when edit permission is lost. Only show the toggle
 to the event organizer, administrator or a creator of a program item in this
-event. The mode never grants permissions. Keep voting, participation, adding
-ideas/links and confirmed deletion workflows independent of this display mode.
+event. The mode never grants permissions. Show activity-delete buttons only in edit
+mode, for authorized creators/admins. Keep their confirmation and permission
+checks. Voting, participation and adding ideas/links remain available in normal
+mode.
 
 Use date-range-picker.js for adding dates to an existing event and collecting
 optional ranges when proposing a new event. Calendar clicks choose beginning

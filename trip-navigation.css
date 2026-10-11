@@ -62,6 +62,6 @@ body[data-page=event] [id]{scroll-margin-top:150px}
 .trip-tools .trip-settings{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;margin:0;border:1px solid transparent;border-radius:50%;color:#bfd6e2;background:transparent;text-decoration:none}
 .trip-tools .trip-settings:hover{background:#153a4c;border-color:#3e6074}
 .edit-mode-toggle:focus-visible,.trip-tools .trip-settings:focus-visible{outline:2px solid #8be4df;outline-offset:3px}
-body[data-page=event]:not(.is-editing) [data-program-media],body[data-page=event]:not(.is-editing) [data-edit-event]{display:none!important}
+body[data-page=event]:not(.is-editing) [data-program-media],body[data-page=event]:not(.is-editing) [data-edit-event],body[data-page=event]:not(.is-editing) [data-program-delete],body.trip-layout:not(.is-editing) [data-delete-activity]{display:none!important}
 @media(max-width:700px){.trip-tools{gap:4px}.trip-tools .edit-mode-toggle{padding:9px 10px}.trip-nav .home-nav-link,.event-main-nav .home-nav-link{font-size:14px;gap:7px}}
-@media print{.edit-mode-bar,.field-pencil,.field-empty-hint,.edit-text-button,[data-program-media],[data-edit-event]{display:none!important}.has-field-pencil,.editable-text{padding-inline-end:0!important;min-height:0!important}}
+@media print{.edit-mode-bar,.field-pencil,.field-empty-hint,.edit-text-button,[data-program-media],[data-edit-event],[data-program-delete],[data-delete-activity]{display:none!important}.has-field-pencil,.editable-text{padding-inline-end:0!important;min-height:0!important}}
